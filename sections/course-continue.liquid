@@ -1,0 +1,331 @@
+{%- liquid
+  comment
+    Access check. Mirrors the logic in sections/main-article.liquid:
+    the customer must be logged in and, when "only_with_access" is enabled,
+    the date metafield (default custom.kursus_adgang_til) must be today or later.
+  endcomment
+
+  assign has_access = false
+
+  if customer
+    if section.settings.only_with_access
+      assign access_metafield_key = section.settings.access_metafield_key | default: 'kursus_adgang_til'
+      assign access_until = customer.metafields.custom[access_metafield_key].value
+
+      if access_until != blank
+        assign access_until_timestamp = access_until | date: '%s' | plus: 86400
+        assign now_timestamp = 'now' | date: '%s' | plus: 0
+
+        if access_until_timestamp >= now_timestamp
+          assign has_access = true
+        endif
+      endif
+    else
+      assign has_access = true
+    endif
+  endif
+-%}
+
+{%- if has_access -%}
+  {%- liquid
+    assign completed_lessons = customer.metafields.custom.completed_lessons.value
+    assign cards_rendered = 0
+    assign fallback_lesson = blank
+    assign fallback_course = blank
+  -%}
+
+  {%- capture course_cards -%}
+    {%- for block in section.blocks -%}
+      {%- liquid
+        assign course = block.settings.blog
+
+        if course == blank or course.articles_count == 0
+          continue
+        endif
+
+        assign lessons = course.articles
+
+        if section.settings.reverse_order
+          assign lessons = course.articles | reverse
+        endif
+
+        assign completed_count = 0
+        assign next_lesson = blank
+
+        for lesson in lessons
+          assign lesson_id_string = lesson.id | append: ''
+
+          if completed_lessons != blank and completed_lessons contains lesson_id_string
+            assign completed_count = completed_count | plus: 1
+          elsif next_lesson == blank
+            assign next_lesson = lesson
+          endif
+        endfor
+
+        if fallback_lesson == blank and next_lesson != blank
+          assign fallback_lesson = next_lesson
+          assign fallback_course = course
+        endif
+
+        comment
+          Only courses that are started but not finished count as "in progress"
+        endcomment
+
+        if completed_count == 0 or next_lesson == blank
+          continue
+        endif
+
+        if cards_rendered >= section.settings.limit
+          break
+        endif
+
+        assign cards_rendered = cards_rendered | plus: 1
+        assign progress_percent = completed_count | times: 100.0 | divided_by: course.articles_count | round
+        assign card_image = next_lesson.image | default: course.metafields.custom.billede.value
+      -%}
+
+      {%- render 'course-continue-card', course: course, lesson: next_lesson, image: card_image, completed_count: completed_count, progress_percent: progress_percent, label: section.settings.next_label, button_text: section.settings.button_text, lessons_label: section.settings.lessons_label, card_color_scheme: section.settings.card_color_scheme, split_title: section.settings.split_title, shopify_attributes: block.shopify_attributes -%}
+    {%- endfor -%}
+  {%- endcapture -%}
+
+  {%- if cards_rendered == 0 and section.settings.show_first_lesson and fallback_lesson != blank -%}
+    {%- liquid
+      assign cards_rendered = 1
+      assign card_image = fallback_lesson.image | default: fallback_course.metafields.custom.billede.value
+    -%}
+
+    {%- capture course_cards -%}
+      {%- render 'course-continue-card', course: fallback_course, lesson: fallback_lesson, image: card_image, completed_count: 0, progress_percent: 0, label: section.settings.start_label, button_text: section.settings.start_button_text, lessons_label: section.settings.lessons_label, card_color_scheme: section.settings.card_color_scheme, split_title: section.settings.split_title -%}
+    {%- endcapture -%}
+  {%- endif -%}
+
+  {%- if cards_rendered > 0 -%}
+    {{ 'course.css' | asset_url | stylesheet_tag }}
+
+    <style>
+      #shopify-section-{{ section.id }} .course-grid {
+        --course-grid-columns-desktop: {{ section.settings.limit | at_most: 3 }};
+      }
+    </style>
+
+    <div class="color-scheme color-scheme--{{ section.settings.color_scheme.id }}">
+      <div class="section-spacing container">
+        <div class="section-stack">
+          {%- if section.settings.subheading != blank or section.settings.title != blank -%}
+            <div class="prose prose-justify-{{ section.settings.text_alignment }}">
+              {%- render 'subheading', content: section.settings.subheading -%}
+
+              {%- assign title = section.settings.title | replace: '[name]', customer.first_name -%}
+              {%- render 'heading', content: title, style: section.settings.heading_tag -%}
+            </div>
+          {%- endif -%}
+
+          <div class="course-grid">
+            {{- course_cards -}}
+          </div>
+        </div>
+      </div>
+    </div>
+  {%- endif -%}
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.course_continue.name",
+  "class": "shopify-section--course-continue",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:sections.course_continue.info"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:global.colors.scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "color_scheme",
+      "id": "card_color_scheme",
+      "label": "t:sections.course_list.card_color_scheme",
+      "default": "scheme-2"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.course_continue.access_category"
+    },
+    {
+      "type": "checkbox",
+      "id": "only_with_access",
+      "label": "t:sections.course_continue.only_with_access",
+      "info": "t:sections.course_continue.only_with_access_info",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "access_metafield_key",
+      "label": "t:sections.main_article.access_metafield_key",
+      "default": "kursus_adgang_til",
+      "visible_if": "{{ section.settings.only_with_access }}"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.course_list.header_category"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "subheading",
+      "label": "t:global.text.subheading",
+      "default": "Velkommen tilbage"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "title",
+      "label": "t:global.text.heading",
+      "info": "t:sections.course_continue.title_info",
+      "default": "Fortsæt hvor du slap"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "label": "t:global.text.heading_size",
+      "options": [
+        {
+          "value": "display-m",
+          "label": "Display M"
+        },
+        {
+          "value": "display-s",
+          "label": "Display S"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        }
+      ],
+      "default": "h3"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "t:global.text.alignment",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "default": "start"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.course_continue.cards_category"
+    },
+    {
+      "type": "range",
+      "id": "limit",
+      "label": "t:sections.course_continue.limit",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "checkbox",
+      "id": "reverse_order",
+      "label": "t:sections.main_blog.reverse_order",
+      "info": "t:sections.main_blog.reverse_order_info",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "split_title",
+      "label": "t:global.course.split_title",
+      "info": "t:global.course.split_title_info",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_first_lesson",
+      "label": "t:sections.course_continue.show_first_lesson",
+      "info": "t:sections.course_continue.show_first_lesson_info",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "next_label",
+      "label": "t:sections.course_continue.next_label",
+      "default": "Næste lektion"
+    },
+    {
+      "type": "text",
+      "id": "start_label",
+      "label": "t:sections.course_continue.start_label",
+      "default": "Start her"
+    },
+    {
+      "type": "text",
+      "id": "lessons_label",
+      "label": "t:sections.course_list.lessons_label",
+      "default": "lektioner"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "t:sections.course_continue.button_text",
+      "default": "Fortsæt"
+    },
+    {
+      "type": "text",
+      "id": "start_button_text",
+      "label": "t:sections.course_continue.start_button_text",
+      "default": "Start kurset"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "course",
+      "name": "t:sections.course_list.blocks.course.name",
+      "settings": [
+        {
+          "type": "blog",
+          "id": "blog",
+          "label": "t:sections.course_list.blocks.course.blog"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.course_continue.name",
+      "blocks": [
+        {
+          "type": "course"
+        },
+        {
+          "type": "course"
+        },
+        {
+          "type": "course"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

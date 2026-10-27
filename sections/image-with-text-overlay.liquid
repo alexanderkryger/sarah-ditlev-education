@@ -1,3 +1,16 @@
+{%- if section.settings.show_scroll_indicator -%}
+  <style>
+    #shopify-section-{{ section.id }} {
+      position: relative;
+      z-index: 1;
+    }
+
+    #shopify-section-{{ section.id }} + .shopify-section {
+      --section-enable-padding-collapsing: 0;
+    }
+  </style>
+{%- endif -%}
+
 <div {% if section.settings.allow_transparent_header %}allow-transparent-header{% endif %} class="color-scheme color-scheme--{{ section.settings.color_scheme.id }}">
   <div class="content-box min-h-{{ section.settings.image_size }}">
     <div class="content-box__background-media with-overlay" style="--overlay: {{ section.settings.overlay_color.rgb }} / {{ section.settings.overlay_opacity | divided_by: 100.0 }}">
@@ -31,6 +44,10 @@
           </div>
         </div>
       {% endif %}
+    {%- endif -%}
+
+    {%- if section.settings.show_scroll_indicator -%}
+         {%- render 'scroll-indicator', text: section.settings.scroll_indicator_text, color_scheme: section.settings.scroll_indicator_color_scheme, size: section.settings.scroll_indicator_size, offset: section.settings.scroll_indicator_offset, hide_on_mobile: section.settings.scroll_indicator_hide_mobile -%}
     {%- endif -%}
   </div>
 </div>
@@ -245,6 +262,59 @@
         }
       ],
       "default": "place-self-center"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.image_with_text_overlay.scroll_indicator_category"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_scroll_indicator",
+      "label": "t:sections.image_with_text_overlay.show_scroll_indicator",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "scroll_indicator_text",
+      "label": "t:sections.image_with_text_overlay.scroll_indicator_text",
+      "default": "Scroll ned",
+      "visible_if": "{{ section.settings.show_scroll_indicator }}"
+    },
+    {
+      "type": "color_scheme",
+      "id": "scroll_indicator_color_scheme",
+      "label": "t:sections.image_with_text_overlay.scroll_indicator_color_scheme",
+      "default": "scheme-1",
+      "visible_if": "{{ section.settings.show_scroll_indicator }}"
+    },
+    {
+      "type": "range",
+      "id": "scroll_indicator_size",
+      "label": "t:sections.image_with_text_overlay.scroll_indicator_size",
+      "min": 80,
+      "max": 160,
+      "step": 10,
+      "unit": "px",
+      "default": 110,
+      "visible_if": "{{ section.settings.show_scroll_indicator }}"
+    },
+    {
+      "type": "range",
+      "id": "scroll_indicator_offset",
+      "label": "t:sections.image_with_text_overlay.scroll_indicator_offset",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 50,
+      "visible_if": "{{ section.settings.show_scroll_indicator }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "scroll_indicator_hide_mobile",
+      "label": "t:sections.image_with_text_overlay.scroll_indicator_hide_mobile",
+      "default": false,
+      "visible_if": "{{ section.settings.show_scroll_indicator }}"
     }
   ],
   "blocks": [

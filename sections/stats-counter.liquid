@@ -1,0 +1,339 @@
+<script src="{{ 'count-up.js' | asset_url }}" type="module"></script>
+
+<style>
+  #shopify-section-{{ section.id }} .stats-counter {
+    --stats-counter-columns: 1;
+    grid-template-columns: repeat(var(--stats-counter-columns), minmax(0, 1fr));
+    gap: var(--container-gutter);
+    display: grid;
+  }
+
+  #shopify-section-{{ section.id }} .stats-counter__item {
+    row-gap: .75rem;
+    justify-items: center;
+    text-align: center;
+    display: grid;
+  }
+
+  #shopify-section-{{ section.id }} .stats-counter__value {
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    display: inline-flex;
+    align-items: flex-start;
+  }
+
+  #shopify-section-{{ section.id }} .stats-counter__suffix {
+    font-size: .45em;
+    line-height: 1;
+    margin-inline-start: .1em;
+    margin-block-start: .15em;
+  }
+
+  #shopify-section-{{ section.id }} .stats-counter__label {
+    max-width: 18rem;
+  }
+
+  @media screen and (min-width: 700px) {
+    #shopify-section-{{ section.id }} .stats-counter {
+      --stats-counter-columns: {{ section.blocks.size | at_most: 2 }};
+    }
+  }
+
+  @media screen and (min-width: 1000px) {
+    #shopify-section-{{ section.id }} .stats-counter {
+      --stats-counter-columns: {{ section.blocks.size | at_most: 4 }};
+    }
+  }
+
+  {%- if section.settings.image != blank -%}
+    #shopify-section-{{ section.id }} .stats-counter__item {
+      justify-items: start;
+      text-align: start;
+    }
+
+    @media screen and (min-width: 700px) {
+      #shopify-section-{{ section.id }} .stats-counter {
+        --stats-counter-columns: {{ section.blocks.size | at_most: 2 }};
+      }
+    }
+
+    @media screen and (min-width: 1000px) {
+      #shopify-section-{{ section.id }} .stats-counter {
+        --stats-counter-columns: {{ section.blocks.size | at_most: 2 }};
+      }
+    }
+
+    {%- unless section.settings.add_media_spacing -%}
+      #shopify-section-{{ section.id }} + .shopify-section {
+        --section-enable-padding-collapsing: 0;
+      }
+    {%- endunless -%}
+  {%- endif -%}
+</style>
+
+{%- capture section_header -%}
+  {%- if section.settings.subheading != blank or section.settings.title != blank or section.settings.content != blank -%}
+    <div class="prose {% if section.settings.image != blank %}prose-justify-start{% else %}prose-justify-center{% endif %}">
+      {%- render 'subheading', content: section.settings.subheading -%}
+      {%- render 'heading', content: section.settings.title, style: section.settings.heading_tag -%}
+      {{- section.settings.content -}}
+    </div>
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- capture stats_grid -%}
+  <div class="stats-counter">
+    {%- for block in section.blocks -%}
+      <div class="stats-counter__item" {{ block.shopify_attributes }}>
+        <count-up class="stats-counter__value {{ section.settings.number_size }}" value="{{ block.settings.value }}" duration="{{ section.settings.duration }}" aria-label="{{ block.settings.value }}{{ block.settings.suffix }}">
+          <span class="stats-counter__number" aria-hidden="true">{{ block.settings.value }}</span>
+
+          {%- if block.settings.suffix != blank -%}
+            <span class="stats-counter__suffix" aria-hidden="true">{{ block.settings.suffix }}</span>
+          {%- endif -%}
+        </count-up>
+
+        {%- if block.settings.label != blank -%}
+          <p class="stats-counter__label text-sm">{{ block.settings.label }}</p>
+        {%- endif -%}
+      </div>
+    {%- endfor -%}
+  </div>
+{%- endcapture -%}
+
+<div class="color-scheme color-scheme--{{ section.settings.color_scheme.id }}">
+  {%- if section.settings.image != blank -%}
+    <div class="section-split {% if section.settings.image_position == 'end' %}section-split--reverse{% endif %}">
+      <div class="section-split__column section-split__column--image {% unless section.settings.add_media_spacing %}section-split__column--flushed{% endunless %}">
+        <div class="content-box h-full">
+          <div class="content-box__background-media">
+            {{- section.settings.image | image_url: width: section.settings.image.width | image_tag: sizes: '(max-width: 999px) 100vw, 50vw', widths: '200,300,400,500,600,800,1000,1200,1400,1600,1800,2000' -}}
+          </div>
+        </div>
+      </div>
+
+      <div class="section-split__column">
+        <div class="section-stack">
+          {{- section_header -}}
+          {{- stats_grid -}}
+        </div>
+      </div>
+    </div>
+  {%- else -%}
+    <div class="section-spacing {% if section.settings.section_spacing != 'normal' %}section-spacing--{{ section.settings.section_spacing }}{% endif %} container">
+      <div class="section-stack">
+        {{- section_header -}}
+        {{- stats_grid -}}
+      </div>
+    </div>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.stats_counter.name",
+  "class": "shopify-section--stats-counter",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "custom.overlay"]
+  },
+  "max_blocks": 4,
+  "settings": [
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:global.colors.scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "select",
+      "id": "section_spacing",
+      "label": "t:sections.stats_counter.section_spacing",
+      "info": "t:sections.stats_counter.section_spacing_info",
+      "options": [
+        {
+          "value": "tight",
+          "label": "Small"
+        },
+        {
+          "value": "normal",
+          "label": "Normal"
+        },
+        {
+          "value": "loose",
+          "label": "Large"
+        }
+      ],
+      "default": "normal"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.text_with_media.media_category"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.stats_counter.image",
+      "info": "t:sections.stats_counter.image_info"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "t:sections.stats_counter.image_position",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "end",
+          "label": "Right"
+        }
+      ],
+      "default": "start",
+      "visible_if": "{{ section.settings.image != blank }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "add_media_spacing",
+      "label": "t:sections.text_with_media.add_media_spacing",
+      "default": false,
+      "visible_if": "{{ section.settings.image != blank }}"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.course_list.header_category"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "subheading",
+      "label": "t:global.text.subheading"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "title",
+      "label": "t:global.text.heading",
+      "default": "Alt du skal bruge, samlet ét sted"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "label": "t:global.text.heading_size",
+      "options": [
+        {
+          "value": "display-s",
+          "label": "Display S"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        }
+      ],
+      "default": "h4"
+    },
+    {
+      "type": "richtext",
+      "id": "content",
+      "label": "t:global.text.content"
+    },
+    {
+      "type": "select",
+      "id": "number_size",
+      "label": "t:sections.stats_counter.number_size",
+      "options": [
+        {
+          "value": "display-l",
+          "label": "Display L"
+        },
+        {
+          "value": "display-m",
+          "label": "Display M"
+        },
+        {
+          "value": "display-s",
+          "label": "Display S"
+        },
+        {
+          "value": "h1",
+          "label": "H1"
+        }
+      ],
+      "default": "display-m"
+    },
+    {
+      "type": "range",
+      "id": "duration",
+      "label": "t:sections.stats_counter.duration",
+      "min": 500,
+      "max": 3000,
+      "step": 100,
+      "unit": "ms",
+      "default": 1500
+    }
+  ],
+  "blocks": [
+    {
+      "type": "stat",
+      "name": "t:sections.stats_counter.blocks.stat.name",
+      "settings": [
+        {
+          "type": "number",
+          "id": "value",
+          "label": "t:sections.stats_counter.blocks.stat.value",
+          "default": 15
+        },
+        {
+          "type": "text",
+          "id": "suffix",
+          "label": "t:sections.stats_counter.blocks.stat.suffix",
+          "info": "t:sections.stats_counter.blocks.stat.suffix_info"
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.stats_counter.blocks.stat.label",
+          "default": "Moduler"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.stats_counter.name",
+      "blocks": [
+        {
+          "type": "stat",
+          "settings": {
+            "value": 15,
+            "label": "Moduler"
+          }
+        },
+        {
+          "type": "stat",
+          "settings": {
+            "value": 40,
+            "suffix": "+",
+            "label": "Lektioner"
+          }
+        },
+        {
+          "type": "stat",
+          "settings": {
+            "value": 30,
+            "suffix": "t",
+            "label": "Timers video"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

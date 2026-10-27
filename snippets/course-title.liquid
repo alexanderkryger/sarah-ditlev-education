@@ -1,0 +1,28 @@
+{%- doc -%}
+Render a course (blog) title. With split enabled, "Modul 1 - The Perfect Balayage" renders as two lines:
+a prefix ("Modul 1") and the title ("The Perfect Balayage"). Titles without " - " render unchanged.
+
+@param {string} title - the blog title
+@param {boolean} [split] - split at " - " (default false)
+@param {string} [prefix_class] - classes for the prefix line (default "text-sm text-subdued")
+{%- enddoc -%}
+
+{%- liquid
+  assign main_title = title
+  assign prefix = blank
+
+  if split
+    assign parts = title | split: ' - '
+
+    if parts.size > 1
+      assign prefix = parts | first | strip
+      assign prefix_with_separator = prefix | append: ' - '
+      assign main_title = title | remove_first: prefix_with_separator | strip
+    endif
+  endif
+-%}
+
+{%- if prefix != blank -%}
+  <span class="course-title__prefix {{ prefix_class | default: 'text-sm text-subdued' }}">{{ prefix }}</span>
+{%- endif -%}
+<span class="course-title__main">{{ main_title }}</span>

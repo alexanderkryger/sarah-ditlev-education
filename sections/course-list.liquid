@@ -1,0 +1,260 @@
+{{ 'course.css' | asset_url | stylesheet_tag }}
+
+<style>
+  #shopify-section-{{ section.id }} .course-grid {
+    --course-grid-columns-desktop: {{ section.settings.columns }};
+  }
+</style>
+
+<div class="color-scheme color-scheme--{{ section.settings.color_scheme.id }}">
+  <div class="section-spacing container">
+    <div class="section-stack">
+      {%- if section.settings.subheading != blank or section.settings.title != blank or section.settings.content != blank -%}
+        <div class="prose prose-justify-{{ section.settings.text_alignment }}">
+          {%- render 'subheading', content: section.settings.subheading -%}
+          {%- render 'heading', content: section.settings.title, style: section.settings.heading_tag -%}
+          {{- section.settings.content -}}
+        </div>
+      {%- endif -%}
+
+      {%- assign completed_lessons = customer.metafields.custom.completed_lessons.value -%}
+
+      <div class="course-grid">
+        {%- for block in section.blocks -%}
+          {%- liquid
+            assign course = block.settings.blog
+            assign completed_count = 0
+            assign progress_percent = 0
+
+            if course != blank
+              if customer and completed_lessons != blank
+                for lesson in course.articles
+                  assign lesson_id_string = lesson.id | append: ''
+
+                  if completed_lessons contains lesson_id_string
+                    assign completed_count = completed_count | plus: 1
+                  endif
+                endfor
+
+                if course.articles_count > 0
+                  assign progress_percent = completed_count | times: 100.0 | divided_by: course.articles_count | round
+                endif
+              endif
+
+              assign course_image = block.settings.image | default: course.metafields.custom.billede.value | default: course.articles.first.image
+              assign course_description = blank
+
+              if section.settings.show_description and course.metafields.custom.beskrivelse != blank
+                assign course_description = course.metafields.custom.beskrivelse | metafield_tag | strip_html | strip | truncate: section.settings.description_length
+              endif
+            endif
+          -%}
+
+          <a href="{{ course.url | default: '#' }}" class="course-tile color-scheme color-scheme--{{ section.settings.card_color_scheme.id }} group" {{ block.shopify_attributes }}>
+            <div class="course-tile__media">
+              {%- if course_image != blank -%}
+                {{- course_image | image_url: width: 1200 | image_tag: loading: 'lazy', sizes: '(max-width: 699px) 100vw, (max-width: 999px) 50vw, 33vw', widths: '300,400,500,600,800,1000,1200', class: 'course-tile__image zoom-image group-hover:zoom' -}}
+              {%- else -%}
+                {{- 'blog-apparel-1' | placeholder_svg_tag: 'course-tile__image' -}}
+              {%- endif -%}
+
+              {%- if customer and course != blank -%}
+                <div class="course-progress course-tile__progress" role="progressbar" aria-valuemin="0" aria-valuemax="{{ course.articles_count }}" aria-valuenow="{{ completed_count }}" style="--course-progress: {{ progress_percent }}%">
+                  <span class="course-progress__bar"></span>
+                </div>
+              {%- endif -%}
+            </div>
+
+            <div class="course-tile__content">
+              <p class="h6 course-tile__title {% if section.settings.split_title %}course-tile__title--split{% endif %}">
+                {%- assign tile_title = course.title | default: 'Kursus' -%}
+                {%- render 'course-title', title: tile_title, split: section.settings.split_title -%}
+              </p>
+
+              {%- if course_description != blank -%}
+                <p class="text-sm text-subdued course-tile__description">{{ course_description }}</p>
+              {%- endif -%}
+
+              {%- if course != blank -%}
+                <p class="text-sm text-subdued course-tile__meta">
+                  {%- if customer -%}
+                    {{ completed_count }}/{{ course.articles_count }} {{ section.settings.lessons_label }}
+                  {%- else -%}
+                    {{ course.articles_count }} {{ section.settings.lessons_label }}
+                  {%- endif -%}
+                </p>
+              {%- endif -%}
+            </div>
+          </a>
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.course_list.name",
+  "class": "shopify-section--course-list",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:global.colors.scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "color_scheme",
+      "id": "card_color_scheme",
+      "label": "t:sections.course_list.card_color_scheme",
+      "default": "scheme-2"
+    },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "t:sections.course_list.columns",
+      "min": 2,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "header",
+      "content": "t:sections.course_list.header_category"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "subheading",
+      "label": "t:global.text.subheading"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "title",
+      "label": "t:global.text.heading",
+      "default": "Kurser"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "label": "t:global.text.heading_size",
+      "options": [
+        {
+          "value": "display-m",
+          "label": "Display M"
+        },
+        {
+          "value": "display-s",
+          "label": "Display S"
+        },
+        {
+          "value": "h2",
+          "label": "H2"
+        },
+        {
+          "value": "h3",
+          "label": "H3"
+        },
+        {
+          "value": "h4",
+          "label": "H4"
+        }
+      ],
+      "default": "h3"
+    },
+    {
+      "type": "richtext",
+      "id": "content",
+      "label": "t:global.text.content"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "t:global.text.alignment",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.course_list.card_category"
+    },
+    {
+      "type": "checkbox",
+      "id": "split_title",
+      "label": "t:global.course.split_title",
+      "info": "t:global.course.split_title_info",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "t:sections.course_list.show_description",
+      "info": "t:sections.course_list.show_description_info",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "description_length",
+      "label": "t:sections.course_list.description_length",
+      "min": 60,
+      "max": 200,
+      "step": 10,
+      "default": 110,
+      "visible_if": "{{ section.settings.show_description }}"
+    },
+    {
+      "type": "text",
+      "id": "lessons_label",
+      "label": "t:sections.course_list.lessons_label",
+      "default": "lektioner"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "course",
+      "name": "t:sections.course_list.blocks.course.name",
+      "settings": [
+        {
+          "type": "blog",
+          "id": "blog",
+          "label": "t:sections.course_list.blocks.course.blog"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image",
+          "info": "t:sections.course_list.blocks.course.image_info"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.course_list.name",
+      "blocks": [
+        {
+          "type": "course"
+        },
+        {
+          "type": "course"
+        },
+        {
+          "type": "course"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

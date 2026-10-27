@@ -4,25 +4,37 @@
     --blog-post-list-gap: 2.5rem;
   }
 
-  @media screen and (min-width: 700px) {
-    #shopify-section-{{ section.id }} {
-      --blog-post-list-grid: auto-flow dense / repeat(2, minmax(0, 1fr));
-      --blog-post-list-gap: var(--container-gutter);
+  {%- if section.settings.layout == 'grid' -%}
+    @media screen and (min-width: 700px) {
+      #shopify-section-{{ section.id }} {
+        --blog-post-list-grid: auto-flow dense / repeat(2, minmax(0, 1fr));
+        --blog-post-list-gap: var(--container-gutter);
+      }
     }
-  }
 
-  @media screen and (min-width: 1000px) {
-    #shopify-section-{{ section.id }} {
-      --blog-post-list-grid: auto-flow dense / repeat(3, minmax(0, 1fr));
+    @media screen and (min-width: 1000px) {
+      #shopify-section-{{ section.id }} {
+        --blog-post-list-grid: auto-flow dense / repeat(3, minmax(0, 1fr));
+      }
     }
-  }
 
-  @media screen and (min-width: 1400px) {
-    #shopify-section-{{ section.id }} {
-      --blog-post-list-grid: auto-flow dense / repeat(4, minmax(0, 1fr));
+    @media screen and (min-width: 1400px) {
+      #shopify-section-{{ section.id }} {
+        --blog-post-list-grid: auto-flow dense / repeat(4, minmax(0, 1fr));
+      }
     }
-  }
+  {%- else -%}
+    @media screen and (min-width: 1000px) {
+      #shopify-section-{{ section.id }} {
+        --blog-post-list-gap: 3rem;
+      }
+    }
+  {%- endif -%}
 </style>
+
+{%- if section.settings.layout == 'course' -%}
+  {{ 'course.css' | asset_url | stylesheet_tag }}
+{%- endif -%}
 
 <div class="color-scheme color-scheme--{{ section.settings.color_scheme.id }}">
   <div class="container">
@@ -36,7 +48,7 @@
         </div>
       </div>
     {%- else -%}
-      {%- if section.settings.show_tags and blog.all_tags.size > 0 -%}
+      {%- if section.settings.layout != 'course' and section.settings.show_tags and blog.all_tags.size > 0 -%}
         <ul class="blog-tags unstyled-list scroll-area bleed" role="list">
           <li class="link-reversed subheading" aria-current="{% if current_tags == blank %}true{% else %}false{% endif %}">
             <a href="{{ blog.url }}">{{- 'blog.general.all_posts' | t -}}</a>
@@ -53,12 +65,135 @@
       {%- endif -%}
 
       {%- paginate blog.articles by section.settings.posts_per_page -%}
-        <div class="blog-post-list-wrapper v-stack gap-8 sm:gap-12">
-          <blog-post-list class="blog-post-list">
-            {%- assign newsletter_block = section.blocks | where: 'type', 'newsletter' | first -%}
-            {%- assign current_index_position = 0 -%}
+        {%- if section.settings.layout == 'course' -%}
+          {%- liquid
+            assign lessons = blog.articles
 
-            {%- for article in blog.articles -%}
+            if section.settings.reverse_order
+              assign lessons = blog.articles | reverse
+            endif
+
+            assign completed_lessons = customer.metafields.custom.completed_lessons.value
+            assign completed_count = 0
+            assign next_lesson = blank
+
+            for lesson in lessons
+              assign lesson_id_string = lesson.id | append: ''
+
+              if customer and completed_lessons != blank and completed_lessons contains lesson_id_string
+                assign completed_count = completed_count | plus: 1
+              elsif next_lesson == blank
+                assign next_lesson = lesson
+              endif
+            endfor
+
+            if next_lesson == blank
+              assign next_lesson = lessons.first
+            endif
+
+            assign progress_percent = completed_count | times: 100.0 | divided_by: blog.articles_count | round
+            assign course_image = blog.metafields.custom.billede.value | default: next_lesson.image
+            assign description_metafield = blog.metafields.custom.beskrivelse
+          -%}
+
+          <div class="course-layout section-spacing">
+            <div class="v-stack gap-6 sm:gap-8">
+              {%- if customer and section.settings.show_progress -%}
+                <div class="course-card color-scheme color-scheme--{{ section.settings.card_color_scheme.id }}">
+                  <div class="h-stack justify-between align-center gap-4">
+                    <p class="h6">{{ section.settings.progress_heading }}</p>
+                    <span class="course-badge">{{ progress_percent }}%</span>
+                  </div>
+
+                  <div class="course-progress" role="progressbar" aria-valuemin="0" aria-valuemax="{{ blog.articles_count }}" aria-valuenow="{{ completed_count }}" style="--course-progress: {{ progress_percent }}%">
+                    <span class="course-progress__bar"></span>
+                  </div>
+
+                  <p class="text-sm text-subdued">{{ section.settings.progress_text | replace: '[completed]', completed_count | replace: '[total]', blog.articles_count }}</p>
+                </div>
+              {%- endif -%}
+
+              <div class="course-card color-scheme color-scheme--{{ section.settings.card_color_scheme.id }}">
+                <div class="v-stack gap-3">
+                  {%- if section.settings.show_title -%}
+                    <h1 class="h5">{%- render 'course-title', title: blog.title, split: section.settings.split_title -%}</h1>
+                  {%- endif -%}
+
+                  <div class="h-stack align-center gap-4 wrap text-sm text-subdued">
+                    {%- if customer -%}
+                      <span class="course-progress course-progress--thin course-progress--inline" style="--course-progress: {{ progress_percent }}%">
+                        <span class="course-progress__bar"></span>
+                      </span>
+
+                      <span>{{ completed_count }} af {{ blog.articles_count }} {{ section.settings.lessons_label }}</span>
+                    {%- else -%}
+                      <span>{{ blog.articles_count }} {{ section.settings.lessons_label }}</span>
+                    {%- endif -%}
+                  </div>
+                </div>
+
+                {%- if description_metafield != blank -%}
+                  <div class="prose">
+                    {%- if description_metafield.type == 'rich_text_field' -%}
+                      {{- description_metafield | metafield_tag -}}
+                    {%- else -%}
+                      <p>{{ description_metafield.value | newline_to_br }}</p>
+                    {%- endif -%}
+                  </div>
+                {%- endif -%}
+
+                {%- render 'course-lesson-list', lessons: lessons, completed_lessons: completed_lessons, next_lesson: next_lesson, variant: 'full', next_badge_text: section.settings.next_badge_text, completed_text: section.settings.completed_text -%}
+              </div>
+            </div>
+
+            <aside class="course-layout__sidebar course-card color-scheme color-scheme--{{ section.settings.card_color_scheme.id }}">
+              {%- if course_image != blank -%}
+                {{- course_image | image_url: width: 1000 | image_tag: loading: 'lazy', sizes: '(max-width: 999px) 100vw, 28rem', widths: '400,600,800,1000', class: 'course-sidebar__image' -}}
+              {%- endif -%}
+
+              {%- render 'button', content: section.settings.continue_text, href: next_lesson.url, stretch: true -%}
+
+              {%- if section.settings.back_text != blank and section.settings.back_url != blank -%}
+                {%- render 'button', content: section.settings.back_text, href: section.settings.back_url, style: 'outline', stretch: true -%}
+              {%- endif -%}
+
+              <div class="v-stack gap-3 text-sm">
+                <div class="course-stat">
+                  <span class="text-subdued">{{ section.settings.lessons_stat_label }}</span>
+                  <span>{{ blog.articles_count }}</span>
+                </div>
+
+                {%- if customer -%}
+                  <div class="course-stat">
+                    <span class="text-subdued">{{ section.settings.completed_stat_label }}</span>
+                    <span>{{ progress_percent }}%</span>
+                  </div>
+                {%- endif -%}
+              </div>
+            </aside>
+          </div>
+        {%- else -%}
+        <div class="blog-post-list-wrapper v-stack gap-8 sm:gap-12">
+          <blog-post-list class="blog-post-list {% if section.settings.layout == 'list' and section.settings.show_separator %}blog-post-list--with-horizontal-separator{% endif %}">
+            {%- liquid
+              assign newsletter_block = section.blocks | where: 'type', 'newsletter' | first
+              assign current_index_position = 0
+              assign articles = blog.articles
+
+              if section.settings.reverse_order
+                assign articles = blog.articles | reverse
+              endif
+
+              if section.settings.layout == 'list'
+                assign card_sizes = '(max-width: 999px) 100vw, 280px'
+                assign horizontal_card = true
+              else
+                assign card_sizes = '(max-width: 699px) 73vw, (max-width: 999px) 60vw, 25vw'
+                assign horizontal_card = false
+              endif
+            -%}
+
+            {%- for article in articles -%}
               {%- assign current_index_position = current_index_position | plus: 1 -%}
 
               {%- if newsletter_block.settings.position == current_index_position -%}
@@ -93,11 +228,11 @@
                               {%- capture error_message -%}{{ form.errors.translated_fields['email'] }} {{ form.errors.messages['email'] }}{%- endcapture -%}
                               {%- render 'banner', content: error_message, status: 'error' -%}
                             {%- endif -%}
-                      
+
                             <input type="hidden" name="contact[tags]" value="newsletter">
-                      
+
                             {%- assign input_label = 'general.newsletter.email' | t -%}
-                            
+
                             <div class="fieldset fieldset--tight">
                               {%- render 'input', name: 'contact[email]', label: input_label, type: 'email', required: true, autocomplete: 'email', enterkeyhint: 'send' -%}
                               {%- render 'button', type: 'submit', content: newsletter_block.settings.button_text, icon: 'arrow-right' -%}
@@ -116,7 +251,7 @@
                 </div>
               {%- endif -%}
 
-              {%- if current_index_position == section.settings.highlight_blog_post_position and article.image != blank -%}
+              {%- if section.settings.layout == 'grid' and current_index_position == section.settings.highlight_blog_post_position and article.image != blank -%}
                 {%- capture meta_content -%}
                   {%- if section.settings.show_category and article.tags.size > 0 -%}
                     <span>{{ article.tags | first }}</span>
@@ -147,7 +282,7 @@
                             {%- if settings.subheading_icon != 'none' -%}
                               <span class="shape shape--{{ settings.subheading_icon }}"></span>
                             {%- endif -%}
-                            
+
                             {{- meta_content -}}
                           </div>
                         {%- endif -%}
@@ -162,14 +297,15 @@
                   </div>
                 </a>
               {%- else -%}
-                {%- render 'blog-post-card', 
-                  article: article, 
+                {%- render 'blog-post-card',
+                  article: article,
+                  horizontal: horizontal_card,
                   heading_size: section.settings.blog_post_card_heading_size,
                   show_category: section.settings.show_category,
                   show_date: section.settings.show_date,
                   show_reading_time: section.settings.show_reading_time,
                   show_excerpt: section.settings.show_excerpt,
-                  sizes: '(max-width: 699px) 73vw, (max-width: 999px) 60vw, 25vw',
+                  sizes: card_sizes,
                   position: forloop.index
                 -%}
               {%- endif -%}
@@ -178,6 +314,7 @@
 
           {%- render 'pagination', paginate: paginate -%}
         </div>
+        {%- endif -%}
       {%- endpaginate -%}
     {%- endif -%}
   </div>
@@ -196,10 +333,150 @@
       "default": "scheme-1"
     },
     {
+      "type": "select",
+      "id": "layout",
+      "label": "t:sections.main_blog.layout",
+      "options": [
+        {
+          "value": "grid",
+          "label": "t:sections.main_blog.layout_options.grid"
+        },
+        {
+          "value": "list",
+          "label": "t:sections.main_blog.layout_options.list"
+        },
+        {
+          "value": "course",
+          "label": "t:sections.main_blog.layout_options.course"
+        }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_separator",
+      "label": "t:sections.main_blog.show_separator",
+      "default": false,
+      "visible_if": "{{ section.settings.layout == 'list' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "reverse_order",
+      "label": "t:sections.main_blog.reverse_order",
+      "info": "t:sections.main_blog.reverse_order_info",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:sections.main_blog.course_category",
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "color_scheme",
+      "id": "card_color_scheme",
+      "label": "t:sections.main_blog.card_color_scheme",
+      "default": "scheme-1",
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_title",
+      "label": "t:sections.main_blog.show_title",
+      "info": "t:sections.main_blog.show_title_info",
+      "default": true,
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "split_title",
+      "label": "t:global.course.split_title",
+      "info": "t:global.course.split_title_info",
+      "default": false,
+      "visible_if": "{{ section.settings.layout == 'course' and section.settings.show_title }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_progress",
+      "label": "t:sections.main_blog.show_progress",
+      "default": true,
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "text",
+      "id": "progress_heading",
+      "label": "t:sections.main_blog.progress_heading",
+      "default": "Fremskridt",
+      "visible_if": "{{ section.settings.layout == 'course' and section.settings.show_progress }}"
+    },
+    {
+      "type": "text",
+      "id": "progress_text",
+      "label": "t:sections.main_blog.progress_text",
+      "info": "t:sections.main_blog.progress_text_info",
+      "default": "[completed] af [total] lektioner gennemført",
+      "visible_if": "{{ section.settings.layout == 'course' and section.settings.show_progress }}"
+    },
+    {
+      "type": "text",
+      "id": "lessons_label",
+      "label": "t:sections.main_blog.lessons_label",
+      "default": "lektioner",
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "text",
+      "id": "next_badge_text",
+      "label": "t:sections.main_blog.next_badge_text",
+      "default": "Næste",
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "text",
+      "id": "completed_text",
+      "label": "t:sections.main_blog.completed_text",
+      "default": "Gennemført",
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "text",
+      "id": "continue_text",
+      "label": "t:sections.main_blog.continue_text",
+      "default": "Fortsæt",
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "text",
+      "id": "lessons_stat_label",
+      "label": "t:sections.main_blog.lessons_stat_label",
+      "default": "Lektioner",
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "text",
+      "id": "completed_stat_label",
+      "label": "t:sections.main_blog.completed_stat_label",
+      "default": "Gennemført",
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "text",
+      "id": "back_text",
+      "label": "t:sections.main_article.back_text",
+      "default": "Gå tilbage til moduler",
+      "visible_if": "{{ section.settings.layout == 'course' }}"
+    },
+    {
+      "type": "url",
+      "id": "back_url",
+      "label": "t:sections.main_article.back_url",
+      "visible_if": "{{ section.settings.layout == 'course' and section.settings.back_text != blank }}"
+    },
+    {
       "type": "checkbox",
       "id": "show_tags",
       "label": "t:sections.main_blog.show_tags",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.layout != 'course' }}"
     },
     {
       "type": "range",
@@ -218,7 +495,8 @@
       "min": 0,
       "max": 50,
       "step": 1,
-      "default": 5
+      "default": 5,
+      "visible_if": "{{ section.settings.layout == 'grid' }}"
     },
     {
       "type": "header",

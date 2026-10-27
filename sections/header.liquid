@@ -1,5 +1,10 @@
 {%- liquid
   assign open_dropdown_menu_in_sidebar = false
+  assign drawer_is_full_width = false
+
+  if section.settings.desktop_layout == 'full_width_drawer'
+    assign drawer_is_full_width = true
+  endif
 
   if section.settings.show_country_selector and localization.available_countries.size > 1
     assign show_country_selector = true
@@ -138,7 +143,7 @@
       -%}
 
       <nav class="header__primary-nav {{ primary_nav_extra_classes }}" aria-label="{{ 'header.general.primary_navigation' | t | escape }}">
-        <button type="button" aria-controls="menu-drawer" class="tap-area {% unless section.settings.desktop_layout == 'drawer' %}md:hidden{% endunless %}">
+        <button type="button" aria-controls="menu-drawer" class="tap-area {% unless section.settings.desktop_layout == 'drawer' or drawer_is_full_width %}md:hidden{% endunless %}">
           <span class="sr-only">{{ 'header.general.menu' | t }}</span>
 
           <div class="h-stack gap-3" aria-hidden="true">
@@ -152,13 +157,15 @@
         </button>
 
         {%- if section.settings.mobile_layout == 'logo_center_navigation_split' -%}
-          <a href="{{ routes.search_url }}" class="header__search-link tap-area md:hidden" aria-controls="search-drawer">
-            <span class="sr-only">{{ 'header.general.search' | t }}</span>
-            {%- render 'icon' with 'search', mobile_width: 16, width: section.settings.desktop_icon_size -%}
-          </a>
+          {%- if section.settings.show_search -%}
+            <a href="{{ routes.search_url }}" class="header__search-link tap-area md:hidden" aria-controls="search-drawer">
+              <span class="sr-only">{{ 'header.general.search' | t }}</span>
+              {%- render 'icon' with 'search', mobile_width: 16, width: section.settings.desktop_icon_size -%}
+            </a>
+          {%- endif -%}
         {%- endif -%}
 
-        {%- if menu.links.size > 0 and section.settings.desktop_layout != 'drawer' -%}
+        {%- if menu.links.size > 0 and section.settings.desktop_layout != 'drawer' and drawer_is_full_width == false -%}
           <ul class="contents unstyled-list md-max:hidden">
             {%- if open_dropdown_menu_in_sidebar -%}
               <li class="contents">
@@ -304,12 +311,14 @@
           </news-modal-button>
         </li>
 
-        <li class="header__search-link {% if section.settings.mobile_layout == 'logo_center_navigation_split' %}md-max:hidden{% endif %}">
-          <a href="{{ routes.search_url }}" class="block tap-area" aria-controls="search-drawer">
-            <span class="sr-only">{{ 'header.general.search' | t }}</span>
-            {%- render 'icon' with 'search', mobile_width: 16, width: section.settings.desktop_icon_size -%}
-          </a>
-        </li>
+        {%- if section.settings.show_search -%}
+          <li class="header__search-link {% if section.settings.mobile_layout == 'logo_center_navigation_split' %}md-max:hidden{% endif %}">
+            <a href="{{ routes.search_url }}" class="block tap-area" aria-controls="search-drawer">
+              <span class="sr-only">{{ 'header.general.search' | t }}</span>
+              {%- render 'icon' with 'search', mobile_width: 16, width: section.settings.desktop_icon_size -%}
+            </a>
+          </li>
+        {%- endif -%}
 
         <li class="header__cart-link relative">
           <a href="{{ routes.cart_url }}" class="block tap-area" {% if settings.cart_type != 'page' and request.page_type != 'cart' %}aria-controls="cart-drawer"{% endif %} data-no-instant>
@@ -354,7 +363,9 @@
       show_country_selector: show_country_selector,
       show_country_name: section.settings.show_country_name,
       show_country_flag: section.settings.show_country_flag,
-      show_locale_selector: show_locale_selector,
+        show_locale_selector: show_locale_selector,
+      full_width: drawer_is_full_width,
+      default_image: section.settings.drawer_default_image,
       color_scheme: section.settings.color_scheme
     -%}
 
@@ -445,6 +456,10 @@
         {
           "value": "drawer",
           "label": "t:sections.header.desktop_layout_options.drawer"
+        },
+        {
+          "value": "full_width_drawer",
+          "label": "t:sections.header.desktop_layout_options.full_width_drawer"
         }
       ],
       "default": "logo_left_navigation_inline"
@@ -493,6 +508,13 @@
       "type": "link_list",
       "id": "drawer_menu",
       "label": "t:sections.header.drawer_menu"
+    },
+    {
+      "type": "image_picker",
+      "id": "drawer_default_image",
+      "label": "t:sections.header.drawer_default_image",
+      "info": "t:sections.header.drawer_default_image_info",
+      "visible_if": "{{ section.settings.desktop_layout == 'full_width_drawer' }}"
     },
     {
       "type": "link_list",
@@ -549,6 +571,12 @@
       "step": 2,
       "unit": "px",
       "default": 16
+    },
+    {
+      "type": "checkbox",
+      "id": "show_search",
+      "label": "t:sections.header.show_search",
+      "default": true
     },
     {
       "type": "checkbox",

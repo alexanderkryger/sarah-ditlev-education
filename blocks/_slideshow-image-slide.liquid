@@ -28,7 +28,7 @@
       {%- endif -%}
     </div>
 
-    <div class="{{ block.settings.mobile_content_position }} {{ block.settings.desktop_content_position }}" style="max-width: {{ block.settings.content_max_width }}px">
+    <div class="w-full {{ block.settings.mobile_content_position }} {{ block.settings.desktop_content_position }}" style="max-width: {{ block.settings.content_max_width }}px">
       <div class="prose prose-justify-{{ block.settings.mobile_content_position | split: '-' | last }} sm:prose-justify-{{ block.settings.desktop_content_position | split: '-' | last }}">
         {%- content_for 'blocks' -%}
       </div>
@@ -205,6 +205,7 @@
     }
   ],
   "blocks": [
+     { "type": "image" },
     { "type": "subheading" },
     { "type": "heading" },
     { "type": "icon" },

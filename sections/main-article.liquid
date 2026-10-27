@@ -1,11 +1,290 @@
+{%- liquid
+  assign show_lessons = false
+
+  if section.settings.show_lessons and blog.articles_count > 0
+    assign show_lessons = true
+    assign lessons = blog.articles
+
+    if section.settings.reverse_order
+      assign lessons = blog.articles | reverse
+    endif
+
+    assign current_lesson_index = 0
+    assign previous_lesson = blank
+    assign next_lesson = blank
+    assign found_current = false
+
+    for lesson in lessons
+      if found_current
+        assign next_lesson = lesson
+        break
+      endif
+
+      if lesson.id == article.id
+        assign found_current = true
+        assign current_lesson_index = forloop.index
+      else
+        assign previous_lesson = lesson
+      endif
+    endfor
+
+    unless found_current
+      assign previous_lesson = blank
+    endunless
+  endif
+
+  comment
+    Completed lessons are stored on the customer in the metafield "custom.completed_lessons"
+    (type: list of single line text, each entry is an article ID). It is written by the app proxy endpoint.
+  endcomment
+
+  assign completed_lessons = customer.metafields.custom.completed_lessons.value
+  assign current_lesson_id = article.id | append: ''
+  assign current_lesson_completed = false
+  assign completed_count = 0
+
+  if customer and completed_lessons != blank
+    if completed_lessons contains current_lesson_id
+      assign current_lesson_completed = true
+    endif
+
+    if show_lessons
+      for lesson in lessons
+        assign lesson_id_string = lesson.id | append: ''
+
+        if completed_lessons contains lesson_id_string
+          assign completed_count = completed_count | plus: 1
+        endif
+      endfor
+    endif
+  endif
+
+  comment
+    Access gate. Three states:
+    - "login": nobody is logged in
+    - "buy": logged in, but the customer metafield (default "custom.kursus_adgang_til", type Date) is missing or in the past
+    - "ok": access date is today or later
+  endcomment
+
+  assign can_watch = true
+  assign access_state = 'ok'
+  assign access_expired = false
+
+  if section.settings.require_login
+    if customer == blank
+      assign can_watch = false
+      assign access_state = 'login'
+    else
+      assign access_metafield_key = section.settings.access_metafield_key | default: 'kursus_adgang_til'
+      assign access_until = customer.metafields.custom[access_metafield_key].value
+
+      if access_until == blank
+        assign can_watch = false
+        assign access_state = 'buy'
+      else
+        assign access_until_timestamp = access_until | date: '%s' | plus: 86400
+        assign now_timestamp = 'now' | date: '%s' | plus: 0
+
+        if access_until_timestamp < now_timestamp
+          assign can_watch = false
+          assign access_state = 'buy'
+          assign access_expired = true
+        endif
+      endif
+    endif
+  endif
+
+  comment
+    Lesson video is read from the article metafield "custom.lesson_video". Supports two metafield types:
+    - URL (Vimeo or YouTube link, recommended for long videos)
+    - File (Shopify hosted video, max 10 minutes)
+  endcomment
+
+  assign lesson_video_metafield = article.metafields.custom.lesson_video
+  assign lesson_video_host = blank
+  assign lesson_video_id = blank
+  assign lesson_video_file = blank
+
+  if lesson_video_metafield != blank
+    if lesson_video_metafield.type == 'file_reference'
+      assign lesson_video_file = lesson_video_metafield.value
+    elsif lesson_video_metafield.type == 'url' or lesson_video_metafield.type == 'single_line_text_field'
+      assign lesson_video_url = lesson_video_metafield.value | strip
+
+      if lesson_video_url contains 'vimeo.com'
+        assign lesson_video_host = 'vimeo'
+        assign lesson_video_id = lesson_video_url | split: 'vimeo.com/' | last | split: '?' | first | split: '/' | last
+      elsif lesson_video_url contains 'youtu.be/'
+        assign lesson_video_host = 'youtube'
+        assign lesson_video_id = lesson_video_url | split: 'youtu.be/' | last | split: '?' | first
+      elsif lesson_video_url contains 'youtube.com'
+        assign lesson_video_host = 'youtube'
+
+        if lesson_video_url contains 'v='
+          assign lesson_video_id = lesson_video_url | split: 'v=' | last | split: '&' | first
+        else
+          assign lesson_video_id = lesson_video_url | split: '/' | last | split: '?' | first
+        endif
+      endif
+    endif
+  endif
+-%}
+
+{%- if show_lessons -%}
+  {{ 'course.css' | asset_url | stylesheet_tag }}
+
+  <style>
+    #shopify-section-{{ section.id }} .article-main--with-lessons {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+      row-gap: 2.5rem;
+      display: grid;
+    }
+
+    @media screen and (min-width: 1000px) {
+      #shopify-section-{{ section.id }} .article-main--with-lessons {
+        grid-template-columns: minmax(0, 1fr) clamp(20rem, 32%, 28rem);
+        column-gap: var(--container-gutter);
+      }
+
+      #shopify-section-{{ section.id }} .article-lessons {
+        position: sticky;
+        inset-block-start: calc(var(--sticky-area-height) + 20px);
+      }
+    }
+  </style>
+{%- endif -%}
+
 <div class="color-scheme color-scheme--{{ section.settings.color_scheme.id }}">
   <div class="section-spacing container">
-    <div class="max-w-{{ section.settings.content_width }} mx-auto">
-      <div class="article-main">
-        <div class="v-stack gap-8 sm:gap-10">
-          <div class="prose">
-            {{- article.content -}}
-          </div>
+    <div class="{% if show_lessons %}max-w-full{% else %}max-w-{{ section.settings.content_width }}{% endif %} mx-auto">
+      <div class="article-main {% if show_lessons %}article-main--with-lessons{% endif %}">
+        <div class="{% if show_lessons %}course-card color-scheme color-scheme--{{ section.settings.content_color_scheme.id }}{% else %}v-stack gap-8 sm:gap-10{% endif %}">
+          {%- if can_watch == false -%}
+            <div class="article-lessons__login-gate content-box min-h-sm" style="--aspect-ratio: 1.7777">
+              {%- if article.image != blank -%}
+                <div class="content-box__background-media with-overlay">
+                  {{- article.image | image_url: width: article.image.width | image_tag: loading: 'eager', sizes: '(max-width: 999px) 100vw, 60vw', widths: '400,600,800,1000,1200,1400,1600,1800,2000', class: 'size-full' -}}
+                </div>
+              {%- endif -%}
+
+              <div class="place-self-center text-center" {% if article.image != blank %}style="color: #ffffff"{% endif %}>
+                <div class="prose prose--compact prose-justify-center">
+                  {%- if access_state == 'login' -%}
+                    {%- if section.settings.login_text != blank -%}
+                      <p class="h6">{{ section.settings.login_text }}</p>
+                    {%- endif -%}
+
+                    {%- liquid
+                      assign return_path = article.url | url_encode
+                      assign login_url = routes.storefront_login_url | append: '?return_to=' | append: return_path | append: '&return_url=' | append: return_path
+                    -%}
+                    {%- render 'button', content: section.settings.login_button_text, href: login_url -%}
+                  {%- else -%}
+                    {%- if access_expired and section.settings.expired_text != blank -%}
+                      <p class="h6">{{ section.settings.expired_text }}</p>
+                    {%- elsif access_expired == false and section.settings.no_access_text != blank -%}
+                      <p class="h6">{{ section.settings.no_access_text }}</p>
+                    {%- endif -%}
+
+                    {%- if section.settings.buy_url != blank -%}
+                      {%- render 'button', content: section.settings.buy_button_text, href: section.settings.buy_url -%}
+                    {%- endif -%}
+                  {%- endif -%}
+                </div>
+              </div>
+            </div>
+          {%- elsif lesson_video_file != blank -%}
+            {%- render 'media' with lesson_video_file, id: 'lesson-video', poster: article.image, autoplay: false, controls: true, playsinline: true, sizes: '(max-width: 999px) 100vw, 60vw' -%}
+          {%- elsif lesson_video_host != blank and lesson_video_id != blank -%}
+            <video-media id="lesson-video" host="{{ lesson_video_host }}" show-play-button style="--aspect-ratio: 1.7777">
+              {%- if article.image != blank -%}
+                {{- article.image | image_url: width: article.image.width | image_tag: loading: 'eager', sizes: '(max-width: 999px) 100vw, 60vw', widths: '400,600,800,1000,1200,1400,1600,1800,2000', class: 'size-full' -}}
+              {%- else -%}
+                {{- 'hero-apparel-1' | placeholder_svg_tag: 'size-full' -}}
+              {%- endif -%}
+
+              <template>
+                {%- if lesson_video_host == 'youtube' -%}
+                  <iframe src="https://www.youtube.com/embed/{{ lesson_video_id }}?playsinline=1&enablejsapi=1&rel=0&modestbranding=1&origin={{ 'https://' | append: request.host | url_encode }}" allow="autoplay; encrypted-media" allowfullscreen="allowfullscreen"></iframe>
+                {%- else -%}
+                  <iframe src="https://player.vimeo.com/video/{{ lesson_video_id }}?autopause=1&transparent=0&responsive=1&portrait=0&title=0&byline=0&dnt=1&color={{ settings.text_color | remove_first: '#' }}" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen="allowfullscreen"></iframe>
+                {%- endif -%}
+              </template>
+            </video-media>
+          {%- endif -%}
+
+          {%- if can_watch -%}
+            <div class="prose">
+              {{- article.content -}}
+            </div>
+
+            {%- liquid
+              assign lesson_files = article.metafields.custom.lesson_pdf.value
+            -%}
+
+            {%- if lesson_files != blank and lesson_files.size > 0 -%}
+              <div class="lesson-files v-stack gap-4">
+                {%- if section.settings.files_heading != blank -%}
+                  <p class="h6">{{ section.settings.files_heading }}</p>
+                {%- endif -%}
+
+                <ul class="lesson-files__list unstyled-list" role="list">
+                  {%- for file in lesson_files -%}
+                    {%- liquid
+                      assign file_name = file.url | split: '/' | last | split: '?' | first | url_decode
+                      assign file_label = file.alt | default: file_name
+                    -%}
+
+                    <li>
+                      <a href="{{ file.url }}" class="lesson-files__item" download target="_blank" rel="noopener">
+                        <svg class="lesson-files__icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+                          <path d="M14 3v5h5"/>
+                          <path d="M12 11v6"/>
+                          <path d="m9.5 14.5 2.5 2.5 2.5-2.5"/>
+                        </svg>
+                        <span class="lesson-files__name">{{ file_label }}</span>
+                        <span class="text-sm text-subdued">{{ section.settings.files_button_text }}</span>
+                      </a>
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              </div>
+            {%- endif -%}
+          {%- endif -%}
+
+          {%- if can_watch and show_lessons and section.settings.show_lesson_navigation -%}
+            <div class="h-stack justify-between gap-4 wrap">
+              {%- if previous_lesson != blank -%}
+                {%- render 'button', content: section.settings.previous_lesson_text, href: previous_lesson.url, style: 'link' -%}
+              {%- else -%}
+                <span></span>
+              {%- endif -%}
+
+              {%- if customer and can_watch and section.settings.proxy_url != blank -%}
+                {%- if current_lesson_completed -%}
+                  <div class="h-stack gap-4">
+                    <span class="h-stack gap-2 text-sm">
+                      {%- render 'icon' with 'success-checkmark', width: 12 -%}
+                      {{- section.settings.completed_text -}}
+                    </span>
+
+                    {%- if next_lesson != blank -%}
+                      {%- render 'button', content: section.settings.next_lesson_text, href: next_lesson.url -%}
+                    {%- endif -%}
+                  </div>
+                {%- else -%}
+                  <lesson-complete-button class="v-stack gap-2 justify-items-end" article-id="{{ article.id }}" proxy-url="{{ section.settings.proxy_url }}" {% if next_lesson != blank %}next-url="{{ next_lesson.url }}"{% endif %}>
+                    {%- render 'button', content: section.settings.complete_button_text, type: 'button' -%}
+                    <p class="text-sm text-error" data-error hidden>{{ section.settings.complete_error_text }}</p>
+                  </lesson-complete-button>
+                {%- endif -%}
+              {%- elsif next_lesson != blank -%}
+                {%- render 'button', content: section.settings.next_lesson_text, href: next_lesson.url -%}
+              {%- endif -%}
+            </div>
+          {%- endif -%}
 
           {%- if section.settings.show_share_buttons -%}
             {%- assign excerpt = article.excerpt | strip_html -%}
@@ -16,10 +295,47 @@
             </div>
           {%- endif -%}
         </div>
+
+        {%- if show_lessons -%}
+          <safe-sticky class="article-lessons course-card color-scheme color-scheme--{{ section.settings.lessons_color_scheme.id }}">
+            <div class="course-card__header v-stack gap-4">
+              <div class="h-stack justify-between align-baseline gap-4">
+                <p class="h6">{%- render 'course-title', title: blog.title, split: section.settings.split_title -%}</p>
+
+                {%- if section.settings.lessons_label != blank -%}
+                  <span class="text-sm text-subdued">{{ blog.articles_count }} {{ section.settings.lessons_label }}</span>
+                {%- endif -%}
+              </div>
+
+              {%- if customer and section.settings.show_progress -%}
+                {%- assign progress_percent = completed_count | times: 100.0 | divided_by: blog.articles_count | round -%}
+
+                <div class="v-stack gap-2">
+                  <span class="text-sm">{{ section.settings.progress_text | replace: '[completed]', completed_count | replace: '[total]', blog.articles_count }}</span>
+
+                  <div class="course-progress course-progress--thin" role="progressbar" aria-valuemin="0" aria-valuemax="{{ blog.articles_count }}" aria-valuenow="{{ completed_count }}" style="--course-progress: {{ progress_percent }}%">
+                    <span class="course-progress__bar"></span>
+                  </div>
+                </div>
+              {%- endif -%}
+            </div>
+
+            {%- render 'course-lesson-list', lessons: lessons, completed_lessons: completed_lessons, current_article: article, variant: 'compact', completed_text: section.settings.completed_text -%}
+
+            {%- if section.settings.back_text != blank -%}
+              {%- assign back_url = section.settings.back_url | default: blog.url -%}
+              {%- render 'button', content: section.settings.back_text, href: back_url, style: 'outline', stretch: true -%}
+            {%- endif -%}
+          </safe-sticky>
+        {%- endif -%}
       </div>
 
+      {%- if customer and show_lessons and section.settings.proxy_url != blank -%}
+        <script src="{{ 'lesson-progress.js' | asset_url }}" type="module"></script>
+      {%- endif -%}
+
       {%- if article.comments_enabled? -%}
-        <div id="comments" class="article-comments v-stack gap-6 sm:gap-12">
+        <div id="comments" class="article-comments v-stack gap-6 sm:gap-12 {% if show_lessons %}max-w-{{ section.settings.content_width }} mx-auto w-full{% endif %}">
           {%- if article.comments_count > 0 -%}
             <div class="article-comments__list">
               <h3 class="h5">{{ 'blog.comments.count' | t: count: article.comments_count }}</h3>
@@ -113,6 +429,7 @@
       "type": "select",
       "id": "content_width",
       "label": "t:global.sizes.content_width",
+      "info": "t:sections.main_article.content_width_info",
       "options": [
         {
           "value": "sm",
@@ -125,6 +442,10 @@
         {
           "value": "lg",
           "label": "t:global.sizes.large"
+        },
+        {
+          "value": "full",
+          "label": "t:global.sizes.full_width"
         }
       ],
       "default": "md"
@@ -134,6 +455,212 @@
       "id": "show_share_buttons",
       "label": "t:sections.main_article.show_share_buttons",
       "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.main_article.lessons_category"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_lessons",
+      "label": "t:sections.main_article.show_lessons",
+      "info": "t:sections.main_article.show_lessons_info",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "content_color_scheme",
+      "label": "t:sections.main_article.content_color_scheme",
+      "default": "scheme-1",
+      "visible_if": "{{ section.settings.show_lessons }}"
+    },
+    {
+      "type": "color_scheme",
+      "id": "lessons_color_scheme",
+      "label": "t:sections.main_article.lessons_color_scheme",
+      "default": "scheme-2",
+      "visible_if": "{{ section.settings.show_lessons }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "split_title",
+      "label": "t:global.course.split_title",
+      "info": "t:global.course.split_title_info",
+      "default": false,
+      "visible_if": "{{ section.settings.show_lessons }}"
+    },
+    {
+      "type": "text",
+      "id": "lessons_label",
+      "label": "t:sections.main_article.lessons_label",
+      "default": "lektioner",
+      "visible_if": "{{ section.settings.show_lessons }}"
+    },
+    {
+      "type": "text",
+      "id": "back_text",
+      "label": "t:sections.main_article.back_text",
+      "default": "Gå tilbage til moduler",
+      "visible_if": "{{ section.settings.show_lessons }}"
+    },
+    {
+      "type": "url",
+      "id": "back_url",
+      "label": "t:sections.main_article.back_url",
+      "info": "t:sections.main_article.back_url_info",
+      "visible_if": "{{ section.settings.show_lessons and section.settings.back_text != blank }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "reverse_order",
+      "label": "t:sections.main_blog.reverse_order",
+      "info": "t:sections.main_blog.reverse_order_info",
+      "default": false,
+      "visible_if": "{{ section.settings.show_lessons }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_lesson_navigation",
+      "label": "t:sections.main_article.show_lesson_navigation",
+      "default": true,
+      "visible_if": "{{ section.settings.show_lessons }}"
+    },
+    {
+      "type": "text",
+      "id": "previous_lesson_text",
+      "label": "t:sections.main_article.previous_lesson_text",
+      "default": "Forrige lektion",
+      "visible_if": "{{ section.settings.show_lessons and section.settings.show_lesson_navigation }}"
+    },
+    {
+      "type": "text",
+      "id": "next_lesson_text",
+      "label": "t:sections.main_article.next_lesson_text",
+      "default": "Næste lektion",
+      "visible_if": "{{ section.settings.show_lessons and section.settings.show_lesson_navigation }}"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.main_article.files_category"
+    },
+    {
+      "type": "text",
+      "id": "files_heading",
+      "label": "t:sections.main_article.files_heading",
+      "info": "t:sections.main_article.files_heading_info",
+      "default": "Materiale til lektionen"
+    },
+    {
+      "type": "text",
+      "id": "files_button_text",
+      "label": "t:sections.main_article.files_button_text",
+      "default": "Download PDF"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.main_article.access_category"
+    },
+    {
+      "type": "checkbox",
+      "id": "require_login",
+      "label": "t:sections.main_article.require_login",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "login_text",
+      "label": "t:sections.main_article.login_text",
+      "default": "Log ind for at se lektionen",
+      "visible_if": "{{ section.settings.require_login }}"
+    },
+    {
+      "type": "text",
+      "id": "login_button_text",
+      "label": "t:sections.main_article.login_button_text",
+      "default": "Log ind",
+      "visible_if": "{{ section.settings.require_login }}"
+    },
+    {
+      "type": "text",
+      "id": "access_metafield_key",
+      "label": "t:sections.main_article.access_metafield_key",
+      "info": "t:sections.main_article.access_metafield_key_info",
+      "default": "kursus_adgang_til",
+      "visible_if": "{{ section.settings.require_login }}"
+    },
+    {
+      "type": "text",
+      "id": "no_access_text",
+      "label": "t:sections.main_article.no_access_text",
+      "default": "Du har ikke adgang til dette kursus",
+      "visible_if": "{{ section.settings.require_login }}"
+    },
+    {
+      "type": "text",
+      "id": "expired_text",
+      "label": "t:sections.main_article.expired_text",
+      "default": "Din adgang er udløbet",
+      "visible_if": "{{ section.settings.require_login }}"
+    },
+    {
+      "type": "text",
+      "id": "buy_button_text",
+      "label": "t:sections.main_article.buy_button_text",
+      "default": "Køb et år mere",
+      "visible_if": "{{ section.settings.require_login }}"
+    },
+    {
+      "type": "url",
+      "id": "buy_url",
+      "label": "t:sections.main_article.buy_url",
+      "visible_if": "{{ section.settings.require_login }}"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.main_article.progress_category"
+    },
+    {
+      "type": "text",
+      "id": "proxy_url",
+      "label": "t:sections.main_article.proxy_url",
+      "info": "t:sections.main_article.proxy_url_info",
+      "default": "/apps/kursus/complete"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_progress",
+      "label": "t:sections.main_article.show_progress",
+      "default": true,
+      "visible_if": "{{ section.settings.show_lessons }}"
+    },
+    {
+      "type": "text",
+      "id": "progress_text",
+      "label": "t:sections.main_article.progress_text",
+      "info": "t:sections.main_article.progress_text_info",
+      "default": "[completed] af [total] gennemført",
+      "visible_if": "{{ section.settings.show_lessons and section.settings.show_progress }}"
+    },
+    {
+      "type": "text",
+      "id": "complete_button_text",
+      "label": "t:sections.main_article.complete_button_text",
+      "default": "Gennemfør og fortsæt",
+      "visible_if": "{{ section.settings.show_lessons }}"
+    },
+    {
+      "type": "text",
+      "id": "completed_text",
+      "label": "t:sections.main_article.completed_text",
+      "default": "Gennemført",
+      "visible_if": "{{ section.settings.show_lessons }}"
+    },
+    {
+      "type": "text",
+      "id": "complete_error_text",
+      "label": "t:sections.main_article.complete_error_text",
+      "default": "Noget gik galt. Prøv igen.",
+      "visible_if": "{{ section.settings.show_lessons }}"
     },
     {
       "type": "header",

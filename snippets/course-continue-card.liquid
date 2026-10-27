@@ -1,0 +1,45 @@
+{%- doc -%}
+Render one "continue" card linking to a specific lesson. Requires assets/course.css.
+
+@param {object} course - the blog
+@param {object} lesson - the article to link to
+@param {object} [image] - image shown on the card
+@param {number} completed_count - lessons completed in this course
+@param {number} progress_percent - completion in percent
+@param {string} label - small label above the lesson title ("Næste lektion", "Start her")
+@param {string} button_text - button label
+@param {string} lessons_label - word after the lesson count
+@param {object} card_color_scheme - color scheme for the card
+@param {boolean} [split_title] - split the course title at " - "
+@param {string} [shopify_attributes] - block attributes for the theme editor
+{%- enddoc -%}
+
+<a href="{{ lesson.url }}" class="course-tile color-scheme color-scheme--{{ card_color_scheme.id }} group" {{ shopify_attributes }}>
+  <div class="course-tile__media">
+    {%- if image != blank -%}
+      {{- image | image_url: width: 1200 | image_tag: loading: 'lazy', sizes: '(max-width: 699px) 100vw, (max-width: 999px) 50vw, 33vw', widths: '300,400,500,600,800,1000,1200', class: 'course-tile__image zoom-image group-hover:zoom' -}}
+    {%- else -%}
+      {{- 'blog-apparel-1' | placeholder_svg_tag: 'course-tile__image' -}}
+    {%- endif -%}
+
+    <div class="course-progress course-tile__progress" role="progressbar" aria-valuemin="0" aria-valuemax="{{ course.articles_count }}" aria-valuenow="{{ completed_count }}" style="--course-progress: {{ progress_percent }}%">
+      <span class="course-progress__bar"></span>
+    </div>
+  </div>
+
+  <div class="course-tile__content">
+    <p class="text-sm text-subdued">{%- render 'course-title', title: course.title, split: split_title, prefix_class: 'text-xs' -%}</p>
+
+    {%- if label != blank -%}
+      <span class="course-badge">{{ label }}</span>
+    {%- endif -%}
+
+    <p class="h6 course-tile__title">{{ lesson.title }}</p>
+
+    <p class="text-sm text-subdued course-tile__meta">{{ completed_count }}/{{ course.articles_count }} {{ lessons_label }}</p>
+
+    {%- if button_text != blank -%}
+      <span class="button justify-self-start">{{ button_text }}</span>
+    {%- endif -%}
+  </div>
+</a>

@@ -1,5 +1,18 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin language editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
 {
   "global": {
+    "course": {
+      "split_title": "Split title at \" - \"",
+      "split_title_info": "Shows \"Modul 1 - The Perfect Balayage\" as two lines."
+    },
     "categories": {
       "banners": "Banners",
       "collections": "Collections",
@@ -998,7 +1011,8 @@
         "logo_left_navigation_inline": "Logo left, navigation inline",
         "logo_left_navigation_center": "Logo left, navigation center",
         "logo_center_navigation_inline": "Logo center, navigation inline",
-        "drawer": "Drawer"
+        "drawer": "Drawer",
+        "full_width_drawer": "Full width drawer"
       },
       "mobile_layout": "Mobile layout",
       "mobile_layout_options": {
@@ -1011,6 +1025,8 @@
       "navigation_category": "Navigation",
       "menu": "Menu",
       "drawer_menu": "Drawer menu",
+      "drawer_default_image": "Drawer default image",
+      "drawer_default_image_info": "Shown in full width drawer mode when no link is hovered. Each link's image is pulled from the custom.header_image metafield on the linked product, collection, page or blog. 1200 x 1400px .jpg recommended.",
       "secondary_menu": "Secondary menu",
       "secondary_menu_info": "This menu won't show dropdown items and will only be visible in drawer mode.",
       "customer_account_menu": "Customer account menu",
@@ -1027,6 +1043,7 @@
         "click": "Click"
       },
       "desktop_icon_size": "Desktop icon size",
+      "show_search": "Show search icon",
       "drawer_show_nested_menu_indicator": "Show arrow for nested menus in drawer",
       "transparent_header_category": "Transparent header",
       "transparent_header_info": "To show a transparent header, add a compatible section (such as slideshow) as the first section. [Learn more](https://support.maestrooo.com/article/312-header-how-to-enable-transparent-header)",
@@ -1097,7 +1114,14 @@
       "image_size_recommendation": "3200 x 1600px .jpg recommended",
       "mobile_image_size_recommendation": "1300 x 1500px .jpg recommended. Default to desktop image.",
       "layout_category": "Layout",
-      "content_follows_on_scroll": "Content follows on scroll",
+      "scroll_indicator_category": "Scroll indicator",
+"show_scroll_indicator": "Show scroll to next section",
+"scroll_indicator_text": "Text",
+"scroll_indicator_color_scheme": "Circle color scheme",
+"scroll_indicator_size": "Size",
+"scroll_indicator_offset": "Overlap below section",
+"scroll_indicator_hide_mobile": "Hide on mobile",
+"content_follows_on_scroll": "Content follows on scroll",
       "content_follows_on_scroll_info": "Content will be aligned on top if enabled."
     },
     "featured_links": {
@@ -1151,13 +1175,102 @@
         }
       }
     },
+"stats_counter": {
+  "name": "Stats counter",
+"section_spacing": "Section spacing",
+"section_spacing_info": "Only applies when no image is selected.",
+"image": "Image",
+"image_info": "Switches to a two column layout on desktop.",
+"image_position": "Image position",
+"number_size": "Number size",
+  "duration": "Animation duration",
+  "blocks": {
+    "stat": {
+      "name": "Stat",
+      "value": "Number",
+      "suffix": "Suffix",
+      "suffix_info": "Shown after the number, e.g. + or %.",
+      "label": "Label"
+    }
+  }
+},
+"course_continue": {
+  "name": "Continue where you left off",
+  "info": "Only rendered for logged in customers. Hidden when the customer has completed every course.",
+  "access_category": "Access",
+  "only_with_access": "Only show to customers with access",
+  "only_with_access_info": "Checks the customer access date metafield, like the lesson page.",
+  "title_info": "Use [name] to insert the customer's first name.",
+  "cards_category": "Cards",
+  "limit": "Courses to show",
+  "show_first_lesson": "Show first lesson when nothing is started",
+  "show_first_lesson_info": "For new customers without any completed lessons.",
+  "next_label": "Next lesson label",
+  "start_label": "Start label",
+  "button_text": "Continue button",
+  "start_button_text": "Start button"
+},
+"course_list": {
+  "name": "Course list",
+  "card_color_scheme": "Card color scheme",
+  "columns": "Columns (desktop)",
+  "header_category": "Section header",
+  "card_category": "Course cards",
+  "show_description": "Show description",
+  "show_description_info": "Uses the blog metafield custom.beskrivelse.",
+  "description_length": "Description length",
+  "lessons_label": "Lesson count label",
+  "blocks": {
+    "course": {
+      "name": "Course",
+      "blog": "Blog",
+      "image_info": "Overrides the blog image metafield."
+    }
+  }
+},
     "main_article": {
       "name": "Blog post",
       "show_author": "Show author",
       "show_date": "Show date",
       "show_share_buttons": "Show share buttons",
       "comments_category": "Blog post comments",
-      "show_gravatar": "Show comment Gravatar"
+      "show_gravatar": "Show comment Gravatar",
+"lessons_category": "Course lessons",
+"content_color_scheme": "Content card color scheme",
+"lessons_color_scheme": "Lesson list color scheme",
+      "show_lessons": "Show lesson list",
+"show_lessons_info": "Lists all posts in the blog as lessons.",
+"back_text": "Back button",
+"back_url": "Back button link",
+"back_url_info": "Page with the course overview. Links to the blog when empty.",
+      "lessons_label": "Lesson count label",
+      "show_lesson_navigation": "Show previous/next lesson buttons",
+      "previous_lesson_text": "Previous lesson button",
+      "next_lesson_text": "Next lesson button",
+      "content_width_info": "Ignored when the lesson list is shown. Only applies to the comments area in that case.",
+"files_category": "Lesson files",
+"files_heading": "Heading",
+"files_heading_info": "Files are read from the article metafield custom.lesson_pdf.",
+"files_button_text": "Download label",
+"access_category": "Access",
+"require_login": "Require login to watch",
+"login_text": "Login message",
+"login_button_text": "Login button",
+"progress_category": "Lesson progress",
+"proxy_url": "Completion endpoint",
+"proxy_url_info": "App proxy path that marks a lesson as completed, e.g. /apps/kursus/complete. Leave empty to disable.",
+"show_progress": "Show progress in lesson list",
+"progress_text": "Progress text",
+"progress_text_info": "Use [completed] and [total] as placeholders.",
+"complete_button_text": "Complete button",
+"completed_text": "Completed label",
+"complete_error_text": "Error message",
+"access_metafield_key": "Access metafield key",
+"access_metafield_key_info": "Key of a customer metafield of type Date in the custom namespace. Access is granted while the date is today or later.",
+"no_access_text": "No access message",
+"expired_text": "Expired message",
+"buy_button_text": "Buy button",
+"buy_url": "Buy button link"
     },
     "main_blog": {
       "name": "Blog",
@@ -1166,6 +1279,29 @@
       "highlight_blog_post_position": "Highlight blog post no.",
       "highlight_blog_post_position_info": "Choose 0 to disable highlight",
       "blog_post_category": "Blog post cards",
+       "layout": "Layout",
+      "layout_options": {
+        "grid": "Grid",
+        "list": "List (stacked)",
+        "course": "Course"
+      },
+      "show_separator": "Show separator between posts",
+      "reverse_order": "Show oldest first",
+      "reverse_order_info": "Useful for courses where lesson 1 is the first published post.",
+            "course_category": "Course layout",
+      "card_color_scheme": "Card color scheme",
+      "show_title": "Show blog title",
+      "show_title_info": "Disable the Blog banner section when enabled, or the title shows twice.",
+      "show_progress": "Show progress card",
+      "progress_heading": "Progress heading",
+      "progress_text": "Progress text",
+      "progress_text_info": "Use [completed] and [total] as placeholders.",
+      "lessons_label": "Lesson count label",
+      "next_badge_text": "Next lesson badge",
+      "completed_text": "Completed label",
+      "continue_text": "Continue button",
+      "lessons_stat_label": "Lessons stat label",
+      "completed_stat_label": "Completed stat label",
       "blocks": {
         "newsletter": {
           "name": "Newsletter",
@@ -1344,8 +1480,14 @@
       "add_top_spacing": "Add spacing between header",
       "show_sticky_add_to_cart": "Show sticky add to cart",
       "product_media_size": "Product media width (desktop)",
+      "info_category": "Product information",
+      "info_boxed": "Show in a box",
+      "info_boxed_info": "Adds a background, spacing and rounded corners around the product information.",
+      "info_color_scheme": "Box color scheme",
+      "info_border_radius": "Box border radius",
       "media_category": "Media",
       "media_category_info": "Learn more about [media types](https://help.shopify.com/en/manual/products/product-media).",
+      "media_border_radius": "Media border radius",
       "desktop_media_layout": "Desktop media layout",
       "desktop_media_layout_options": {
         "grid": "Grid",
@@ -1919,6 +2061,20 @@
         "video": {
           "name": "Video",
           "allow_sound": "Allow to unmute sound"
+        },
+        "triple_video": {
+          "name": "3x video",
+          "info": "Three vertical (9:16) videos side by side on desktop. One of them is shown on mobile.",
+          "video_1": "Video 1",
+          "video_2": "Video 2",
+          "video_3": "Video 3",
+          "gap": "Gap between videos",
+          "gap_options": {
+            "none": "None"
+          },
+          "mobile_category": "Mobile",
+          "mobile_video_source": "Video shown on mobile",
+          "mobile_video_info": "Optional. Overrides the selection above with a separate upload."
         }
       }
     },

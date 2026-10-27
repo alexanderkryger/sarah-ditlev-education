@@ -1,6 +1,10 @@
+{%- if section.settings.split_title -%}
+  {{ 'course.css' | asset_url | stylesheet_tag }}
+{%- endif -%}
+
 <div class="color-scheme color-scheme--{{ section.settings.color_scheme.id }}" {% if section.settings.allow_transparent_header and section.settings.image != blank %}allow-transparent-header{% endif %}>
   {%- capture inner_content -%}
-    <h1 class="{{ section.settings.title_tag }}">{{ blog.title }}</h1>
+    <h1 class="{{ section.settings.title_tag }}">{%- render 'course-title', title: blog.title, split: section.settings.split_title, prefix_class: 'h6' -%}</h1>
 
     {%- if section.settings.content != blank -%}
       <div class="max-w-sm">
@@ -109,6 +113,13 @@
       "type": "richtext",
       "id": "content",
       "label": "t:sections.blog_banner.blog_description"
+    },
+    {
+      "type": "checkbox",
+      "id": "split_title",
+      "label": "t:global.course.split_title",
+      "info": "t:global.course.split_title_info",
+      "default": false
     }
   ]
 }

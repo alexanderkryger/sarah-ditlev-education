@@ -10,10 +10,12 @@ mobile, and for desktop on "drawer" mode.
 @param {boolean} [show_country_name] - if set to true, the country name will be displayed along the currency
 @param {boolean} [show_country_flag] - if set to true, the country flag will be displayed along the currency
 @param {boolean} [show_locale_selector] - if set to true, the locale selector will be displayed at the bottom
+@param {boolean} [full_width] - if true, the drawer takes the full width on desktop and shows a media column
+@param {object} [default_image] - the image shown in the media column when no link is hovered (full width mode only)
 @param {object} [section]
 {%- enddoc -%}
 
-<header-menu-drawer id="menu-drawer" class="menu-drawer color-scheme color-scheme--{{ color_scheme.id }}">
+<header-menu-drawer id="menu-drawer" class="menu-drawer {% if full_width %}menu-drawer--full-width{% endif %} color-scheme color-scheme--{{ color_scheme.id }}">
   <template>
     <div part="overlay"></div>
 
@@ -45,12 +47,36 @@ mobile, and for desktop on "drawer" mode.
               endfor
             -%}
 
-            <li>
+            {%- liquid
+              assign drawer_image = blank
+              assign drawer_icon = blank
+
+              if full_width and link.object != blank
+                assign drawer_image = link.object.metafields.custom.header_image
+                assign drawer_icon = link.object.metafields.custom.header_icon
+              endif
+            -%}
+
+            {%- capture drawer_link_icon -%}
+              {%- if drawer_icon != blank -%}
+                <span class="menu-drawer__link-icon" aria-hidden="true">
+                  {{- drawer_icon | image_url: width: 96 | image_tag: loading: 'lazy', alt: '' -}}
+                </span>
+              {%- endif -%}
+            {%- endcapture -%}
+
+            <li {% if drawer_image != blank %}data-drawer-image-trigger="{{ forloop.index }}"{% endif %}>
               {%- if link.levels == 0 and mega_menu_block == '' -%}
-                <a href="{{ link.url }}" class="h4 w-full">{{ link.title }}</a>
+                <a href="{{ link.url }}" class="h4 w-full">
+                  <div class="h-stack gap-3 sm:gap-5">
+                    {{- drawer_link_icon -}}
+                    {{- link.title -}}
+                  </div>
+                </a>
               {%- else -%}
                 <button type="button" class="h4 text-start w-full" data-panel-toggle aria-controls="menu-drawer-panel-{{ forloop.index }}">
                   <div class="h-stack gap-3 sm:gap-5">
+                    {{- drawer_link_icon -}}
                     {{- link.title -}}
 
                     {%- if show_nested_menu_indicator -%}
@@ -198,4 +224,72 @@ mobile, and for desktop on "drawer" mode.
       </header-menu-drawer-panel>
     {%- endif -%}
   {%- endfor -%}
+  {%- comment -%}
+  Media column for the full width drawer mode. All link images are stacked, and the active one is revealed
+  through CSS only (hover on the main panel, or when a secondary panel is open)
+  {%- endcomment -%}
+
+  {%- if full_width -%}
+    {%- liquid
+      assign drawer_media_default = default_image
+      assign drawer_media_indices = ''
+    -%}
+
+    {%- capture drawer_media_items -%}
+      {%- for link in primary_menu.links -%}
+        {%- liquid
+          assign drawer_image = blank
+
+          if link.object != blank
+            assign drawer_image = link.object.metafields.custom.header_image
+          endif
+
+          if drawer_image == blank
+            continue
+          endif
+
+          if drawer_media_default == blank
+            assign drawer_media_default = drawer_image
+          endif
+
+          assign drawer_media_indices = drawer_media_indices | append: forloop.index | append: ','
+        -%}
+
+        <div class="menu-drawer__media-item" data-drawer-image="{{ forloop.index }}">
+          {%- render 'media', media: drawer_image, preload: false, sizes: '50vw', autoplay: true, loop: true, controls: false, show_play_button: false -%}
+        </div>
+      {%- endfor -%}
+    {%- endcapture -%}
+
+    {%- if drawer_media_default != blank -%}
+      <div class="menu-drawer__media" aria-hidden="true">
+        <div class="menu-drawer__media-item menu-drawer__media-item--default">
+          {%- render 'media', media: drawer_media_default, preload: false, sizes: '50vw', autoplay: true, loop: true, controls: false, show_play_button: false -%}
+        </div>
+        {{- drawer_media_items -}}
+      </div>
+
+      <script>
+        document.getElementById('menu-drawer').addEventListener('dialog:after-hide', (event) => {
+          event.currentTarget.querySelector('.menu-drawer__media').style.opacity = '';
+        });
+      </script>
+
+      {%- assign drawer_media_indices = drawer_media_indices | split: ',' -%}
+
+      {%- if drawer_media_indices.size > 0 -%}
+        <style>
+          {%- for index in drawer_media_indices -%}
+            .menu-drawer--full-width:has([data-drawer-image-trigger="{{ index }}"]:hover, #menu-drawer-panel-{{ index }}.is-visible) [data-drawer-image="{{ index }}"] {
+              opacity: 1;
+            }
+
+            .menu-drawer--full-width:has([data-drawer-image-trigger="{{ index }}"]:hover, #menu-drawer-panel-{{ index }}.is-visible) .menu-drawer__media-item--default {
+              opacity: 0;
+            }
+          {%- endfor -%}
+        </style>
+      {%- endif -%}
+    {%- endif -%}
+  {%- endif -%}
 </header-menu-drawer>

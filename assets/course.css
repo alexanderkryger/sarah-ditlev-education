@@ -1,0 +1,307 @@
+/**
+ * Course components shared by sections/main-blog.liquid (course layout)
+ * and sections/main-article.liquid (lesson sidebar).
+ */
+
+.course-layout {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  row-gap: 2.5rem;
+  display: grid;
+}
+
+.course-card {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 1.5rem;
+  padding: min(2rem, var(--container-gutter));
+  border-radius: min(12px, var(--button-border-radius));
+  display: grid;
+}
+
+.course-card__header {
+  padding-block-end: 1.25rem;
+  border-block-end: 1px solid rgb(var(--border-color));
+}
+
+.course-badge {
+  padding: .25rem .75rem;
+  border-radius: 9999px;
+  background: rgb(var(--text-color) / .1);
+  font-size: .75rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+}
+
+.course-progress {
+  background: rgb(var(--text-color) / .15);
+  border-radius: 9999px;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+}
+
+.course-progress--thin {
+  height: 3px;
+}
+
+.course-progress--inline {
+  width: 10rem;
+  flex-shrink: 0;
+}
+
+.course-progress__bar {
+  background: currentColor;
+  width: var(--course-progress, 0%);
+  height: 100%;
+  transition: width .3s ease-in-out;
+  display: block;
+}
+
+.course-lesson-list {
+  row-gap: .5rem;
+  margin-inline: -.75rem;
+  display: grid;
+}
+
+.course-lesson {
+  grid-template-columns: 1.5rem 7rem minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 1rem;
+  padding: .875rem .75rem;
+  border: 1px solid transparent;
+  border-radius: min(8px, var(--button-border-radius));
+  transition: background .2s, border-color .2s;
+  display: grid;
+}
+
+.course-lesson--compact {
+  grid-template-columns: 1.25rem 5.5rem minmax(0, 1fr) 1rem;
+}
+
+.course-lesson[aria-current="page"] {
+  background: rgb(var(--text-color) / .08);
+}
+
+.course-lesson--next {
+  border-color: rgb(var(--text-color) / .25);
+}
+
+@media screen and (pointer: fine) {
+  .course-lesson:not([aria-current="page"]):hover {
+    background: rgb(var(--text-color) / .05);
+  }
+}
+
+.course-lesson__index {
+  text-align: center;
+  opacity: .6;
+}
+
+.course-lesson[aria-current="page"] .course-lesson__index {
+  opacity: 1;
+}
+
+.course-lesson__media {
+  position: relative;
+  display: block;
+}
+
+.course-lesson__image {
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  width: 100%;
+  border-radius: min(6px, var(--button-border-radius));
+  display: block;
+}
+
+.course-lesson__duration {
+  position: absolute;
+  inset-block-end: .375rem;
+  inset-inline-end: .375rem;
+  padding: .125rem .5rem;
+  border-radius: 9999px;
+  background: rgb(0 0 0 / .65);
+  color: #fff;
+  font-size: .6875rem;
+  line-height: 1.5;
+}
+
+.course-lesson__title {
+  row-gap: .5rem;
+  justify-items: start;
+  display: grid;
+}
+
+.course-lesson__status {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  border: 2px solid rgb(var(--text-color) / .55);
+  display: grid;
+  place-items: center;
+}
+
+.course-lesson__status svg,
+.course-lesson__check {
+  visibility: hidden;
+}
+
+.course-lesson--completed .course-lesson__status {
+  background: rgb(var(--text-color) / .35);
+  border-color: transparent;
+  color: #fff;
+}
+
+.course-lesson--completed .course-lesson__status svg,
+.course-lesson--completed .course-lesson__check {
+  visibility: visible;
+}
+
+.course-sidebar__image {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  width: 100%;
+  border-radius: min(8px, var(--button-border-radius));
+  display: block;
+}
+
+.course-stat {
+  justify-content: space-between;
+  gap: 1rem;
+  display: flex;
+}
+
+@media screen and (min-width: 1000px) {
+  .course-layout {
+    grid-template-columns: minmax(0, 1fr) clamp(20rem, 32%, 28rem);
+    column-gap: var(--container-gutter);
+  }
+
+  .course-layout__sidebar {
+    position: sticky;
+    inset-block-start: calc(var(--sticky-area-height) + 20px);
+  }
+}
+
+/* Split course titles (snippets/course-title.liquid) */
+
+.course-title__prefix,
+.course-title__main {
+  display: block;
+}
+
+.course-title__prefix {
+  margin-block-end: .25em;
+}
+
+/* Course list section (sections/course-list.liquid) */
+
+.course-grid {
+  --course-grid-columns: 1;
+  grid-template-columns: repeat(var(--course-grid-columns), minmax(0, 1fr));
+  gap: var(--container-gutter);
+  display: grid;
+}
+
+@media screen and (min-width: 700px) {
+  .course-grid {
+    --course-grid-columns: 2;
+  }
+}
+
+@media screen and (min-width: 1000px) {
+  .course-grid {
+    --course-grid-columns: var(--course-grid-columns-desktop, 3);
+  }
+}
+
+.course-tile {
+  border-radius: min(12px, var(--button-border-radius));
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.course-tile__media {
+  position: relative;
+  overflow: hidden;
+}
+
+.course-tile__image {
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  width: 100%;
+  display: block;
+}
+
+.course-tile__progress {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  border-radius: 0;
+  background: rgb(255 255 255 / .35);
+}
+
+.course-tile__content {
+  padding: min(1.5rem, var(--container-gutter));
+  row-gap: .5rem;
+  align-content: start;
+  display: grid;
+}
+
+.course-tile__title,
+.course-tile__description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.course-tile__title {
+  -webkit-line-clamp: 1;
+}
+
+.course-tile__title--split {
+  -webkit-line-clamp: 2;
+}
+
+.course-tile__description {
+  -webkit-line-clamp: 2;
+}
+
+.course-tile__meta {
+  margin-block-start: .75rem;
+}
+
+/* Lesson files (sections/main-article.liquid) */
+
+.lesson-files__list {
+  row-gap: .5rem;
+  display: grid;
+}
+
+.lesson-files__item {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: .875rem;
+  padding: .875rem 1rem;
+  border: 1px solid rgb(var(--border-color));
+  border-radius: min(8px, var(--button-border-radius));
+  transition: background .2s, border-color .2s;
+  display: grid;
+}
+
+.lesson-files__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media screen and (pointer: fine) {
+  .lesson-files__item:hover {
+    background: rgb(var(--text-color) / .05);
+    border-color: rgb(var(--text-color) / .25);
+  }
+}

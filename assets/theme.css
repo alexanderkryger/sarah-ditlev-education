@@ -6853,6 +6853,76 @@ shopify-account {
   display: block;
 }
 
+.menu-drawer__media {
+  display: none;
+}
+
+@media screen and (min-width: 1000px) {
+  .menu-drawer--full-width::part(content) {
+    max-width: none;
+  }
+
+  .menu-drawer--full-width .menu-drawer__panel {
+    width: 50%;
+  }
+
+  .menu-drawer--full-width .menu-drawer__panel-body {
+    --menu-drawer-padding-inline: clamp(2rem, 8vw, 7.5rem);
+    align-content: center;
+    display: grid;
+  }
+
+  .menu-drawer__media {
+    grid-area: 1 / -1;
+    justify-self: end;
+    width: 50%;
+    height: 100%;
+    display: grid;
+    overflow: hidden;
+  }
+
+  .menu-drawer__media-item {
+    grid-area: 1 / -1;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity .3s ease-in-out;
+  }
+
+  .menu-drawer__media-item--default {
+    opacity: 1;
+  }
+}
+
+.menu-drawer__link-icon {
+  background: #2b2421;
+  border-radius: .5rem;
+  flex-shrink: 0;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+}
+
+.menu-drawer__link-icon img {
+  object-fit: contain;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+@media screen and (min-width: 1000px) {
+  .menu-drawer__link-icon {
+    width: 4rem;
+    height: 4rem;
+  }
+
+  .menu-drawer__link-icon img {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
 .hot-spot {
   --hot-spot-dot-size: 2rem;
   --hot-spot-dot-shadow-size: 3rem;
@@ -7320,8 +7390,16 @@ shopify-account {
   padding-inline: 0;
 }
 
+.product-gallery__media {
+  border-radius: var(--product-gallery-border-radius, 0px);
+}
+
 .product-gallery__media > * {
   width: 100%;
+}
+
+.product-gallery__media > :not(open-lightbox-button), .product-gallery__media picture > img {
+  border-radius: inherit;
 }
 
 .product-gallery__cursor.is-half-start svg {
@@ -7532,6 +7610,23 @@ shopify-account {
 
   [allow-transparent-header] .product-info {
     margin-block-start: calc(var(--header-height) + 4rem);
+  }
+}
+
+.product-info--boxed {
+  --product-info-box-padding: min(1.75rem, var(--container-gutter));
+}
+
+.product-info--boxed .product-info__block-list {
+  --distance-to-bleed: var(--product-info-box-padding);
+  padding: var(--product-info-box-padding);
+  border-radius: var(--product-info-box-border-radius, 0px);
+}
+
+@media screen and (min-width: 1000px) {
+  .product-info--boxed {
+    --product-info-box-padding: 2.5rem;
+    max-width: calc(32rem + var(--product-block-item-margin) * 2 + var(--product-info-box-padding) * 2);
   }
 }
 

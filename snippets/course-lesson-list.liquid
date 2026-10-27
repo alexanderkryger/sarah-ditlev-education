@@ -1,0 +1,76 @@
+{%- doc -%}
+Render the ordered list of lessons (articles) in a course (blog). Requires assets/course.css.
+
+@param {array} lessons - the articles to list, in lesson order
+@param {array} [completed_lessons] - article IDs (as strings) the customer has completed
+@param {object} [current_article] - the article being viewed, marked with aria-current
+@param {object} [next_lesson] - the next uncompleted lesson, highlighted in the "full" variant
+@param {string} [variant] - "full" (blog overview, default) or "compact" (article sidebar)
+@param {string} [next_badge_text] - label shown on the next lesson in the "full" variant
+@param {string} [completed_text] - accessible label for the completed indicator
+{%- enddoc -%}
+
+{%- liquid
+  assign variant = variant | default: 'full'
+-%}
+
+<ol class="course-lesson-list unstyled-list" role="list">
+  {%- for lesson in lessons -%}
+    {%- liquid
+      assign lesson_id_string = lesson.id | append: ''
+      assign lesson_completed = false
+      assign lesson_is_current = false
+      assign lesson_is_next = false
+
+      if completed_lessons != blank and completed_lessons contains lesson_id_string
+        assign lesson_completed = true
+      endif
+
+      if current_article != blank and lesson.id == current_article.id
+        assign lesson_is_current = true
+      endif
+
+      if next_lesson != blank and lesson.id == next_lesson.id and lesson_completed == false
+        assign lesson_is_next = true
+      endif
+    -%}
+
+    <li>
+      <a href="{{ lesson.url }}" class="course-lesson course-lesson--{{ variant }} {% if lesson_completed %}course-lesson--completed{% endif %} {% if lesson_is_next and variant == 'full' %}course-lesson--next{% endif %}" data-lesson-id="{{ lesson.id }}" {% if lesson_is_current %}aria-current="page"{% endif %}>
+        <span class="course-lesson__index text-sm">{{ forloop.index }}</span>
+
+        <span class="course-lesson__media">
+          {%- if lesson.image != blank -%}
+            {%- if variant == 'full' -%}
+              {{- lesson.image | image_url: width: 400 | image_tag: loading: 'lazy', sizes: '112px', widths: '200,400', class: 'course-lesson__image' -}}
+            {%- else -%}
+              {{- lesson.image | image_url: width: 240 | image_tag: loading: 'lazy', sizes: '88px', widths: '120,240', class: 'course-lesson__image' -}}
+            {%- endif -%}
+          {%- endif -%}
+
+          {%- if variant == 'full' and lesson.metafields.custom.varighed != blank -%}
+            <span class="course-lesson__duration">{{ lesson.metafields.custom.varighed }}</span>
+          {%- endif -%}
+        </span>
+
+        <span class="course-lesson__title">
+          <span class="{% if variant == 'full' %}h7{% else %}text-sm{% endif %}">{{ lesson.title }}</span>
+
+          {%- if variant == 'full' and lesson_is_next and next_badge_text != blank -%}
+            <span class="course-badge">{{ next_badge_text }}</span>
+          {%- endif -%}
+        </span>
+
+        {%- if variant == 'full' -%}
+          <span class="course-lesson__status" {% if lesson_completed %}aria-label="{{ completed_text | escape }}"{% endif %}>
+            {%- render 'icon' with 'success-checkmark', width: 10 -%}
+          </span>
+        {%- else -%}
+          <span class="course-lesson__check" {% if lesson_completed %}aria-label="{{ completed_text | escape }}"{% endif %}>
+            {%- render 'icon' with 'success-checkmark', width: 12 -%}
+          </span>
+        {%- endif -%}
+      </a>
+    </li>
+  {%- endfor -%}
+</ol>

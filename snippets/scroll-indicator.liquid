@@ -1,0 +1,109 @@
+{%- doc -%}
+Rotating circular "scroll down" indicator placed on the bottom edge of a section, overlapping the next one.
+Must be rendered inside a positioned container (e.g. .content-box). Requires assets/scroll-indicator.js.
+
+@param {string} text - the label, repeated around the circle (e.g. "Scroll ned")
+@param {object} color_scheme - color scheme for the circle
+@param {number} [size] - diameter in px (default 110)
+@param {number} [speed] - seconds per rotation (default 14)
+@param {number} [offset] - how much of the circle hangs below the section edge, in percent (default 50)
+@param {boolean} [hide_on_mobile] - hide below 700px (default false)
+{%- enddoc -%}
+
+{%- liquid
+  assign size = size | default: 110
+  assign speed = speed | default: 14
+  assign offset = offset | default: 50
+  assign text = text | default: 'Scroll ned' | strip
+  assign repeated_text = text | append: ' • ' | append: text | append: ' • ' | append: text | append: ' • '
+  assign path_id = 'scroll-indicator-path-' | append: section.id
+-%}
+
+<scroll-indicator class="scroll-indicator {% if hide_on_mobile %}scroll-indicator--hide-mobile{% endif %} color-scheme color-scheme--{{ color_scheme.id }}" style="--scroll-indicator-size: {{ size }}px; --scroll-indicator-speed: {{ speed }}s; --scroll-indicator-offset: {{ offset | divided_by: 100.0 }}">
+  <button type="button" class="scroll-indicator__button" aria-label="{{ text | escape }}">
+    <svg class="scroll-indicator__text" viewBox="0 0 100 100" aria-hidden="true">
+      <defs>
+        <path id="{{ path_id }}" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"/>
+      </defs>
+      <text font-size="10.5" letter-spacing="1.2" fill="currentColor">
+        <textPath href="#{{ path_id }}" textLength="232" lengthAdjust="spacing">{{ repeated_text | upcase }}</textPath>
+      </text>
+    </svg>
+
+    <svg class="scroll-indicator__arrow" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 5v14"/>
+      <path d="m6 13 6 6 6-6"/>
+    </svg>
+  </button>
+</scroll-indicator>
+
+<style>
+  .scroll-indicator {
+    position: absolute !important;
+    inset-inline-start: 50%;
+    inset-block-end: calc(var(--scroll-indicator-size, 110px) * var(--scroll-indicator-offset, .5) * -1);
+    margin-inline-start: calc(var(--scroll-indicator-size, 110px) / -2);
+    width: var(--scroll-indicator-size, 110px);
+    height: var(--scroll-indicator-size, 110px);
+    z-index: 5;
+    display: block;
+  }
+
+  .scroll-indicator__button {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 9999px;
+    background: rgb(var(--background)) !important;
+    color: rgb(var(--text-color)) !important;
+    position: relative;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: transform .3s ease;
+  }
+
+  .scroll-indicator__text {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    font-family: inherit;
+    animation: scroll-indicator-rotate var(--scroll-indicator-speed, 14s) linear infinite;
+  }
+
+  .scroll-indicator__arrow {
+    position: relative;
+  }
+
+  @media screen and (pointer: fine) {
+    .scroll-indicator__button:hover {
+      transform: scale(1.05);
+    }
+
+    .scroll-indicator__button:hover .scroll-indicator__text {
+      animation-play-state: paused;
+    }
+  }
+
+  @media screen and (max-width: 699px) {
+    .scroll-indicator--hide-mobile {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-indicator__text {
+      animation: none;
+    }
+  }
+
+  @keyframes scroll-indicator-rotate {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>
+
+<script src="{{ 'scroll-indicator.js' | asset_url }}" type="module"></script>

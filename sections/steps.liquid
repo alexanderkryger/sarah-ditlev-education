@@ -1,0 +1,336 @@
+{%- if section.blocks.size > 0 -%}
+  {%- liquid
+    assign columns_desktop = section.settings.columns_desktop | at_most: section.blocks.size
+    assign header_alignment = section.settings.text_alignment | replace: 'left', 'start' | replace: 'right', 'end'
+  -%}
+
+  <style>
+    #shopify-section-{{ section.id }} {
+      --steps-column-count: {{ columns_desktop }};
+      --steps-grid: auto-flow / minmax(0, 1fr);
+      --steps-gap: var(--container-gutter);
+      --steps-card-padding: var(--container-gutter);
+      --steps-card-radius: 0.625rem;
+      --steps-number-size: 2rem;
+      --steps-number-gap: 2.5rem;
+    }
+
+    @media screen and (min-width: 700px) {
+      #shopify-section-{{ section.id }} {
+        --steps-grid: auto-flow / repeat(min(2, var(--steps-column-count)), minmax(0, 1fr));
+        --steps-number-gap: 3.5rem;
+      }
+    }
+
+    @media screen and (min-width: 1000px) {
+      #shopify-section-{{ section.id }} {
+        --steps-grid: auto-flow / repeat(var(--steps-column-count), minmax(0, 1fr));
+      }
+    }
+
+    #shopify-section-{{ section.id }} .steps {
+      grid: var(--steps-grid);
+      gap: var(--steps-gap);
+      display: grid;
+    }
+
+    #shopify-section-{{ section.id }} .steps__card {
+      padding: var(--steps-card-padding);
+      border-radius: var(--steps-card-radius);
+      height: 100%;
+    }
+
+    #shopify-section-{{ section.id }} .steps__number {
+      width: var(--steps-number-size);
+      height: var(--steps-number-size);
+      margin-block-end: var(--steps-number-gap);
+      border-radius: var(--rounded-full);
+      background: rgb(var(--button-background-primary));
+      color: rgb(var(--button-text-primary));
+      font-size: var(--text-sm);
+      line-height: 1;
+      place-items: center;
+      display: grid;
+    }
+
+    #shopify-section-{{ section.id }} .steps__image {
+      width: var(--steps-image-width, 3rem);
+      margin-block-end: 1.25rem;
+    }
+  </style>
+
+  <div class="color-scheme color-scheme--{{ section.settings.color_scheme.id }}">
+    <div class="{% if section.settings.add_horizontal_spacing %}container{% endif %} {% if section.settings.add_vertical_spacing %}section-spacing{% endif %}">
+      <div class="section-stack">
+        {%- if section.settings.subheading != blank or section.settings.title != blank or section.settings.content != blank -%}
+          <div class="{% unless section.settings.add_horizontal_spacing %}container{% endunless %}">
+            <div class="section-header {% if section.settings.text_alignment == 'center' %}section-header--stack justify-items-{{ header_alignment }}{% endif %}">
+              <div class="prose prose-justify-{{ section.settings.text_alignment }}">
+                {%- if section.settings.subheading != blank -%}
+                  {%- render 'subheading', content: section.settings.subheading -%}
+                {%- endif -%}
+
+                {%- if section.settings.title != blank -%}
+                  {%- render 'heading', content: section.settings.title, balance_text: true, style: section.settings.heading_tag, html_tag: 'h2' -%}
+                {%- endif -%}
+
+                {%- if section.settings.content != blank -%}
+                  <div class="max-w-md">
+                    {{- section.settings.content -}}
+                  </div>
+                {%- endif -%}
+              </div>
+            </div>
+          </div>
+        {%- endif -%}
+
+        <div class="steps">
+          {%- for block in section.blocks -%}
+            <div class="steps__card {% if section.settings.show_card_border %}border{% endif %}" {{ block.shopify_attributes }}>
+              {%- if section.settings.show_numbers -%}
+                <div class="steps__number" aria-hidden="true">{{ forloop.index }}</div>
+              {%- endif -%}
+
+              <div class="prose prose--compact prose-justify-start">
+                {%- if block.settings.image != blank -%}
+                  {%- capture image_width_style -%}--steps-image-width: {{ block.settings.image_width | divided_by: 16.0 }}rem;{%- endcapture -%}
+                  {{- block.settings.image | image_url: width: block.settings.image.width | image_tag: loading: 'lazy', widths: '48,72,96,144,192', sizes: '96px', class: 'steps__image', style: image_width_style -}}
+                {%- endif -%}
+
+                {%- if block.settings.heading != blank -%}
+                  {%- render 'heading', content: block.settings.heading, style: block.settings.heading_size, html_tag: 'h3' -%}
+                {%- endif -%}
+
+                {%- if block.settings.text != blank -%}
+                  {{- block.settings.text -}}
+                {%- endif -%}
+
+                {%- if block.settings.button_text != blank -%}
+                  {%- render 'button',
+                    content: block.settings.button_text,
+                    href: block.settings.button_link,
+                    style: block.settings.button_style,
+                    external: block.settings.button_open_in_new_tab
+                  -%}
+                {%- endif -%}
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+      </div>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Steps",
+  "class": "shopify-section--steps",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:global.colors.scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "subheading",
+      "label": "Subheading"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "title",
+      "label": "t:global.text.heading",
+      "default": "What happens next?"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "label": "t:global.text.heading_size",
+      "options": [
+        { "value": "h2", "label": "Large" },
+        { "value": "h3", "label": "Medium" },
+        { "value": "h4", "label": "Small" },
+        { "value": "h5", "label": "X-Small" },
+        { "value": "h6", "label": "XX-Small" }
+      ],
+      "default": "h4"
+    },
+    {
+      "type": "richtext",
+      "id": "content",
+      "label": "Content"
+    },
+    {
+      "type": "text_alignment",
+      "id": "text_alignment",
+      "label": "t:global.text.alignment",
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 2,
+      "max": 4,
+      "step": 1,
+      "label": "Columns on desktop",
+      "default": 3
+    },
+    {
+      "type": "checkbox",
+      "id": "show_numbers",
+      "label": "Show step numbers",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_card_border",
+      "label": "Show card border",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Section spacing"
+    },
+    {
+      "type": "checkbox",
+      "id": "add_vertical_spacing",
+      "label": "t:global.spacing.add_vertical_spacing",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "add_horizontal_spacing",
+      "label": "t:global.spacing.add_horizontal_spacing",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "step",
+      "name": "Step",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:global.image.image",
+          "info": "Optional. Shown above the step heading."
+        },
+        {
+          "type": "range",
+          "id": "image_width",
+          "min": 24,
+          "max": 96,
+          "step": 4,
+          "unit": "px",
+          "label": "Image width",
+          "default": 48
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "t:global.text.heading",
+          "default": "Apply"
+        },
+        {
+          "type": "select",
+          "id": "heading_size",
+          "label": "t:global.text.heading_size",
+          "options": [
+            { "value": "h4", "label": "Large" },
+            { "value": "h5", "label": "Medium" },
+            { "value": "h6", "label": "Small" },
+            { "value": "h7", "label": "X-Small" }
+          ],
+          "default": "h6"
+        },
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "Text",
+          "default": "<p>Tell us about your business and the projects you have in front of you.</p>"
+        },
+        {
+          "type": "header",
+          "content": "Button"
+        },
+        {
+          "type": "text",
+          "id": "button_text",
+          "label": "Button label"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "Button link"
+        },
+        {
+          "type": "select",
+          "id": "button_style",
+          "label": "Button style",
+          "options": [
+            { "value": "solid", "label": "Solid" },
+            { "value": "outline", "label": "Outline" },
+            { "value": "link", "label": "Link" }
+          ],
+          "default": "outline"
+        },
+        {
+          "type": "checkbox",
+          "id": "button_open_in_new_tab",
+          "label": "Open link in new tab",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Steps",
+      "category": "t:global.categories.storytelling",
+      "settings": {
+        "title": "What happens next?",
+        "heading_tag": "h4",
+        "text_alignment": "left",
+        "columns_desktop": 3
+      },
+      "blocks": [
+        {
+          "type": "step",
+          "settings": {
+            "heading": "Apply",
+            "text": "<p>Tell us about your business and the projects you have in front of you.</p>"
+          }
+        },
+        {
+          "type": "step",
+          "settings": {
+            "heading": "Get approved",
+            "text": "<p>We personally review every application. Partnerships are limited and not every applicant is accepted.</p>"
+          }
+        },
+        {
+          "type": "step",
+          "settings": {
+            "heading": "You're in",
+            "text": "<p>Trade pricing unlocks and you now have access to the full product range.</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

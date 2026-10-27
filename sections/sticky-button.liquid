@@ -1,0 +1,311 @@
+{%- liquid
+  assign modal_id = 'sticky-button-modal-' | append: section.id
+
+  assign app_block_count = 0
+  for block in section.blocks
+    if block.type == '@app'
+      assign app_block_count = app_block_count | plus: 1
+    endif
+  endfor
+-%}
+
+{%- if section.settings.button_text != blank -%}
+  <style>
+    #shopify-section-{{ section.id }} .sticky-button {
+      --sticky-button-alignment: {{ section.settings.alignment }};
+      --sticky-button-max-width: {{ section.settings.max_width }}px;
+      --sticky-button-offset: {{ section.settings.mobile_offset }}px;
+      z-index: 2;
+      display: grid;
+      justify-items: var(--sticky-button-alignment);
+      pointer-events: none;
+      position: fixed;
+      inset-inline: var(--container-gutter);
+      inset-block-end: calc(var(--sticky-button-offset) + env(safe-area-inset-bottom, 0px));
+    }
+
+    #shopify-section-{{ section.id }} .sticky-button > * {
+      width: 100%;
+      max-width: var(--sticky-button-max-width);
+      pointer-events: auto;
+    }
+
+    @media screen and (min-width: 700px) {
+      #shopify-section-{{ section.id }} .sticky-button {
+        --sticky-button-offset: {{ section.settings.desktop_offset }}px;
+      }
+    }
+  </style>
+
+  <div class="sticky-button {% unless section.settings.show_on_mobile %}sm-max:hidden{% endunless %} {% unless section.settings.show_on_desktop %}sm:hidden{% endunless %}">
+    {%- liquid
+      assign icon = section.settings.icon
+      if icon == 'none'
+        assign icon = blank
+      endif
+
+      if section.settings.action == 'popup'
+        render 'button', content: section.settings.button_text, aria_controls: modal_id, style: section.settings.button_style, background: section.settings.button_background, text_color: section.settings.button_text_color, icon: icon, stretch: true
+      else
+        render 'button', content: section.settings.button_text, href: section.settings.button_link, external: section.settings.open_in_new_tab, style: section.settings.button_style, background: section.settings.button_background, text_color: section.settings.button_text_color, icon: icon, stretch: true
+      endif
+    -%}
+  </div>
+
+  {%- if section.settings.action == 'popup' -%}
+    <x-modal id="{{ modal_id }}" append-to-body class="modal {% if section.settings.modal_size == 'lg' %}modal--lg{% endif %} color-scheme color-scheme--{{ section.settings.color_scheme.id }}" title="{{ section.settings.modal_title | default: section.settings.button_text | escape }}" handle-editor-events>
+      {%- if section.settings.modal_image != blank -%}
+        {{- section.settings.modal_image | image_url: width: section.settings.modal_image.width | image_tag: loading: 'lazy', sizes: '(max-width: 999px) 100vw, 430px', widths: '200,400,600,800,1000,1200', slot: 'image' -}}
+      {%- endif -%}
+
+      <div class="v-stack gap-6">
+        {%- if section.settings.modal_title != blank -%}
+          <p class="h5" style="padding-inline-end: 2rem">{{ section.settings.modal_title }}</p>
+        {%- endif -%}
+
+        {%- if section.settings.modal_content != blank -%}
+          <div class="prose prose--compact">{{ section.settings.modal_content }}</div>
+        {%- endif -%}
+
+        {%- for block in section.blocks -%}
+          {%- case block.type -%}
+            {%- when '@app' -%}
+              {%- render block -%}
+          {%- endcase -%}
+        {%- endfor -%}
+
+        {%- if app_block_count == 0 and request.design_mode -%}
+          <p class="text-subdued">Add the "Forms" app block to this section, then paste your Shopify Forms form ID into it.</p>
+        {%- endif -%}
+      </div>
+    </x-modal>
+  {%- endif -%}
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Sticky button",
+  "class": "shopify-section--sticky-button",
+  "limit": 1,
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "To show a Shopify Forms form in the popup: create an inline form in the Forms app, copy its form ID, then add the \"Forms\" app block below and paste the ID into it."
+    },
+    {
+      "type": "select",
+      "id": "action",
+      "label": "Button action",
+      "options": [
+        {
+          "value": "popup",
+          "label": "Open popup"
+        },
+        {
+          "value": "link",
+          "label": "Open link"
+        }
+      ],
+      "default": "popup"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "t:global.text.button_text",
+      "default": "Sign up til VIP her"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:global.text.link",
+      "visible_if": "{{ section.settings.action == 'link' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_in_new_tab",
+      "label": "t:global.text.open_in_new_tab",
+      "default": false,
+      "visible_if": "{{ section.settings.action == 'link' }}"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "label": "t:global.text.style",
+      "options": [
+        {
+          "value": "outline",
+          "label": "t:global.text.button_style_options.outline"
+        },
+        {
+          "value": "solid",
+          "label": "t:global.text.button_style_options.solid"
+        }
+      ],
+      "default": "outline"
+    },
+    {
+      "type": "select",
+      "id": "icon",
+      "label": "t:global.icons.icon",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "arrow-right",
+          "label": "Arrow"
+        },
+        {
+          "value": "picto-sparkle",
+          "label": "Sparkle"
+        },
+        {
+          "value": "picto-star",
+          "label": "Star"
+        }
+      ],
+      "default": "picto-sparkle"
+    },
+    {
+      "type": "color",
+      "id": "button_background",
+      "label": "t:global.colors.background"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "t:global.text.text"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Button alignment",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "end",
+          "label": "Right"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 200,
+      "max": 800,
+      "step": 20,
+      "unit": "px",
+      "default": 420
+    },
+    {
+      "type": "range",
+      "id": "mobile_offset",
+      "label": "Distance from bottom (mobile)",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "desktop_offset",
+      "label": "Distance from bottom (desktop)",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "default": 28
+    },
+    {
+      "type": "checkbox",
+      "id": "show_on_mobile",
+      "label": "Show on mobile",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_on_desktop",
+      "label": "Show on desktop",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Popup",
+      "visible_if": "{{ section.settings.action == 'popup' }}"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:global.colors.scheme",
+      "default": "scheme-1",
+      "visible_if": "{{ section.settings.action == 'popup' }}"
+    },
+    {
+      "type": "select",
+      "id": "modal_size",
+      "label": "Popup size",
+      "options": [
+        {
+          "value": "base",
+          "label": "Small"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "default": "base",
+      "visible_if": "{{ section.settings.action == 'popup' }}"
+    },
+    {
+      "type": "image_picker",
+      "id": "modal_image",
+      "label": "t:global.image.image",
+      "info": "1000 x 1000px .jpg recommended",
+      "visible_if": "{{ section.settings.action == 'popup' }}"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "modal_title",
+      "label": "t:global.text.heading",
+      "default": "Bliv VIP",
+      "visible_if": "{{ section.settings.action == 'popup' }}"
+    },
+    {
+      "type": "richtext",
+      "id": "modal_content",
+      "label": "t:global.text.text",
+      "default": "<p>Tilmeld dig og få adgang til vores fødselsdagstilbud før alle andre.</p>",
+      "visible_if": "{{ section.settings.action == 'popup' }}"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@app"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Sticky button"
+    }
+  ]
+}
+{% endschema %}
